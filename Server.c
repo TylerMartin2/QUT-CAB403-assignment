@@ -14,7 +14,7 @@
 	#define ARRAY_SIZE 30  /* Size of array to receive */
 	#define BACKLOG 10     /* how many pending connections queue will hold */
 	#define RETURNED_ERROR -1
-	#define PORT_NO 12345
+	#define DEFAULT_PORT_NO 12345
 	#define MAX_USERS 10
 
 	
@@ -43,6 +43,13 @@ int main(int argc, char *argv[]){
 	FILE *file;
 	const char* authFilename = "Authentication.txt";
 	const char* wordsFilename = "hangman_text.txt";
+	
+	//check launch arguements
+	if (argc != 2) {
+		fprintf(stderr,"usage: port_number \n");
+		exit(1);
+	}
+	
 //-------------------------------------------------------------------	
 // ***Import hangman word array
 
@@ -68,6 +75,7 @@ int main(int argc, char *argv[]){
 		currentUser++;
 	}
     fclose(file);
+	memset(&buffer[0], 0, sizeof(buffer));
 	
 	//debug
 	//debug_printuserlist(&userlist);
@@ -83,7 +91,11 @@ int main(int argc, char *argv[]){
 
 	/* generate the end point */
 	my_addr.sin_family = AF_INET;         /* host byte order */
-	my_addr.sin_port = htons(PORT_NO);     /* short, network byte order */
+	if (argv[0] == NULL ){
+		my_addr.sin_port = htons(DEFAULT_PORT_NO); /* short, network byte order */
+	} else {
+		my_addr.sin_port = htons(*argv[1]);
+	}
 	my_addr.sin_addr.s_addr = INADDR_ANY; /* auto-fill with my IP */
 		/* bzero(&(my_addr.sin_zero), 8);   ZJL*/     /* zero the rest of the struct */
 
@@ -122,11 +134,11 @@ int main(int argc, char *argv[]){
 			if (send(new_fd, "Enter Username: ", 16, 0) == -1)
 				perror("username send failure");
 			
-			if (recv(new_fd, buffer, sizeof(buffer),0) == -1) {
+			if (recv(new_fd, buffer, 10,0) == -1) {
                         perror("recv");
                         exit(1);
                 }
-			printf("Server:Msg Received %s\n", buffer);
+			printf("Server:Msg Received %s", buffer);
 			
 			//check if user registered
 			
@@ -134,11 +146,11 @@ int main(int argc, char *argv[]){
 			if (send(new_fd, "Enter Password: ", 16, 0) == -1)
 				perror("Password send failure");
 			
-			if (recv(new_fd, buffer, sizeof(buffer),0) == -1) {
+			if (recv(new_fd, buffer, 6,0) == -1) {
                         perror("recv");
                         exit(1);
                 }
-			printf("Server:Msg Received %s\n", buffer);
+			printf("Server:Msg Received %s", buffer);
 		
 		//***login accepted
 		

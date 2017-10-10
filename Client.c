@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
 		buf[i] = 0;
 	}
 
-	if (argc != 2) {
-		fprintf(stderr,"usage: client_hostname\n");
+	if (argc != 3) {
+		fprintf(stderr,"usage: client_hostname port \n");
 		exit(1);
 	}
 
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
 
 
 	their_addr.sin_family = AF_INET;      /* host byte order */
-	their_addr.sin_port = htons(PORT_NO);    /* short, network byte order */
+	their_addr.sin_port = htons(*argv[2]);    /* short, network byte order */
 	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
 	bzero(&(their_addr.sin_zero), 8);     /* zero the rest of the struct */
 	
