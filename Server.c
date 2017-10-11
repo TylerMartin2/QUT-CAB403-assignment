@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-
+	#define MAXDATASIZE 100
 	#define ARRAY_SIZE 30  /* Size of array to receive */
 	#define BACKLOG 10     /* how many pending connections queue will hold */
 	#define RETURNED_ERROR -1
@@ -20,6 +20,8 @@
 	
 //Define Functions
 void debug_printuserlist(); // e.g. debug_printuserlist(&userlist, userCount);
+void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
+void sendMessage(int sock_fd, char * message);
 
 typedef struct {
    char *username;
@@ -156,8 +158,6 @@ int main(int argc, char *argv[]){
 			printf(",%s,%s, \n", userlist[0].username, userlist[0].password);
 			
 			//check if user registered
-			char * message = malloc(20);
-			message = "authFail";
 			int authFailed = 1;
 			for (int i = 0; i < userCount; i++ ){		
 				if (strcmp(username, userlist[i].username) == 0 && strcmp(password, userlist[i].password) == 0){
@@ -165,32 +165,52 @@ int main(int argc, char *argv[]){
 					authFailed = 0;
 					break;
 				}
-			}			
-			if (authFailed == 1){
-				printf("failed auth, quitting \n");
-				if (send(new_fd,message, strlen(message),0)== -1) {
-				close(new_fd);
-				exit(0);
-				}
 			}
 			
-			message = "authPass";
-			if (send(new_fd,message, strlen(message),0)== -1) {
-                fprintf(stderr, "Failure Sending Message\n");
-				close(new_fd);
-                exit(1);
-			} else{
-				printf("message sent");
+			//send response to client
+			char * message = malloc(20);
+			if (authFailed == 1){
+				printf("failed auth, quitting \n");
+				message = "authFail";
+			} else {
+				message = "authPass";
 			}
+			sendMessage(new_fd, message);
+			
 		
 		//***hangman title
 		
 		
 		//***leaderboard
+		// compareto
+			
+			// while swapped
+			// swapped = false
+				// for user in userlist
+				// compare with previous
+					
+		
 		
 		//***hangman game loop
+		// {
+		// l
 		
+		// elephant
+		// _l___a___
+		 // add l to guess list
 		
+		// for _
+			// if no _
+				// you won
+				// wins + 1
+				// break
+			
+		// send buf
+		// +1 guesses
+		// }
+		// if guesses lef < 0
+			// send you lost
+			
 			
 			close(new_fd); // connection close
 			exit(0);
@@ -206,5 +226,24 @@ void debug_printuserlist(User *userlist, int userCount){
 		printf("[%s]  [%s]	[%d][%d] \n", userlist[currentUser].username, userlist[currentUser].password,
 			userlist[currentUser].games_played, userlist[currentUser].games_won);
 		currentUser++;
+	}
+}
+
+void getMessage(int sock_fd, char buffer[]){
+	int numbytes;
+	if ((numbytes=recv(sock_fd, buffer, MAXDATASIZE, 0)) == -1) {
+		perror("recv");
+		close(sock_fd);
+		exit(1);
+	} 
+	buffer[numbytes] = '\0';
+}
+
+
+void sendMessage(int sock_fd, char * message){
+	if (send(sock_fd,message, strlen(message),0)== -1) {
+		fprintf(stderr, "Failure Sending Message\n");
+		close(sock_fd);
+		exit(1);
 	}
 }

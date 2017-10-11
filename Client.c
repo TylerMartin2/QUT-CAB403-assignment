@@ -14,8 +14,10 @@
 	
 	
 static int getLine (int *buff, size_t sz);
-void getMessage();
+
+void getMessage(int sock_fd, char buffer[]);
 void sendMessage(int sock_fd, char * message);
+
 
 
 int main(int argc, char *argv[]) {
@@ -67,14 +69,7 @@ int main(int argc, char *argv[]) {
 	sendMessage(sock_fd, sendbuffer);
 	
 	//result
-	//strcpy(buf, "undefined");
-	//getMessage(sock_fd,&buf);
-	if (recv(sock_fd, buf, MAXDATASIZE, 0) == -1) {
-		perror("recv");
-		close(sock_fd);
-		exit(1);
-	}
-	printf("%s \n",buf);
+	getMessage(sock_fd, buf);
 	
 	if (strcmp(buf,"authPass")!=0){ // not equal
 		printf("Authentication Failed");
@@ -108,19 +103,16 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-void getMessage(int sock_fd, char * output){
-	char buffer[MAXDATASIZE];
-	if (recv(sock_fd, buffer, MAXDATASIZE, 0) == -1) {
+void getMessage(int sock_fd, char buffer[]){
+	int numbytes;
+	if ((numbytes=recv(sock_fd, buffer, MAXDATASIZE, 0)) == -1) {
 		perror("recv");
 		close(sock_fd);
 		exit(1);
 	} 
-	//buffer[numbytes] = '\0';
-	printf("%s", *output);
-	strcpy(buffer, output);
-	//outputbuffer;
-	return;
+	buffer[numbytes] = '\0';
 }
+
 
 void sendMessage(int sock_fd, char * message){
 	if (send(sock_fd,message, strlen(message),0)== -1) {
