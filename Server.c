@@ -28,7 +28,12 @@ typedef struct {
    char *password;
    int  games_played;
    int   games_won;
-} User; 
+} User;
+
+typedef struct {
+   char *type;
+   char *object;
+} Word_pair;
 
 //Begin Program
 int main(int argc, char *argv[]){
@@ -44,6 +49,9 @@ int main(int argc, char *argv[]){
 	User userlist[MAX_USERS];
 	int userCount = 0;
 	
+	Word_pair words[500];
+	int numWords = 0;
+	
 	FILE *file;
 	const char* authFilename = "Authentication.txt";
 	const char* wordsFilename = "hangman_text.txt";
@@ -51,7 +59,22 @@ int main(int argc, char *argv[]){
 //-------------------------------------------------------------------	
 // ***Import hangman word array
 
-
+	file = fopen(wordsFilename, "r");
+	if (file == NULL){
+        printf("Could not open file %s",authFilename);
+        return 1;
+    }
+	int wordPairCounter = 0;
+	while (fgets(buffer, sizeof(buffer), file) != NULL){
+		words[wordPairCounter].type = malloc(20*sizeof(char));
+		words[wordPairCounter].object = malloc(20*sizeof(char));
+		sscanf( buffer, "%[^,],%s ", words[wordPairCounter].object, words[wordPairCounter].type);
+		//printf("[%s],[%s] \n", words[wordPairCounter].type, words[wordPairCounter].object);
+		wordPairCounter++;
+	}
+	 fclose(file);
+	 numWords = wordPairCounter;
+	 memset(&buffer[0], 0, sizeof(buffer));
 	
 //-------------------------------------------------------------------
 // import users
@@ -74,11 +97,11 @@ int main(int argc, char *argv[]){
 		userlist[currentUser].games_won = 0;
 		currentUser++;
 	}
+	fclose(file);
 	userCount = currentUser;
-    fclose(file);
 	memset(&buffer[0], 0, sizeof(buffer));
 	
-	//debug_printuserlist(&userlist, userCount);
+	debug_printuserlist(&userlist, userCount);
 	
 //------------------------------------------------------------------
 // generate socket & listen
