@@ -14,15 +14,17 @@
 	
 	
 static int getLine (int *buff, size_t sz);
+void getMessage();
+void sendMessage(int sock_fd, char * message);
 
 
 int main(int argc, char *argv[]) {
-	int sockfd, numbytes, readline;  
+	int sock_fd, numbytes, readline;  
 	char buf[MAXDATASIZE];
 	char sendbuffer[ARRAY_SIZE];
 	struct hostent *he;
 	struct sockaddr_in their_addr; /* connector's address information */
-	
+
 	for (int i = 0; i < MAXDATASIZE; i++){
 		buf[i] = 0;
 	}
@@ -37,42 +39,93 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+	if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("socket");
 		exit(1);
 	}
 
-
 	their_addr.sin_family = AF_INET;      /* host byte order */
-	their_addr.sin_port = htons(*argv[2]);    /* short, network byte order */
+	their_addr.sin_port = htons(atoi(argv[2]));    /* short, network byte order */
 	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
 	bzero(&(their_addr.sin_zero), 8);     /* zero the rest of the struct */
 	
-	
-	
-	if (connect(sockfd, (struct sockaddr *)&their_addr, \
+	if (connect(sock_fd, (struct sockaddr *)&their_addr, \
 	sizeof(struct sockaddr)) == -1) {
 		perror("Failed to Connect");
 		exit(1);
 	}
-	while (1){
-		/* Receive message from server */
-	if ((numbytes=recv(sockfd, buf, MAXDATASIZE, 0)) == -1) {
-		perror("recv");
-		exit(1);
-	} 
-	buf[numbytes] = '\0';
-	printf("Received: %s",buf);
+	//----------------------------------------------------------------------------------
+	// Authentication
 	
-	
+	printf("Enter Username: ");
 	fgets(sendbuffer,1024-1,stdin);
-        if ((send(sockfd,sendbuffer, strlen(sendbuffer),0))== -1) {
-                fprintf(stderr, "Failure Sending Message\n");
-                close(sockfd);
-                exit(1);
-        }
+	sendMessage(sock_fd, sendbuffer);
+	
+		
+	printf("Enter Password: ");
+	fgets(sendbuffer,1024-1,stdin);
+	sendMessage(sock_fd, sendbuffer);
+	
+	//result
+	//strcpy(buf, "undefined");
+	//getMessage(sock_fd,&buf);
+	if (recv(sock_fd, buf, MAXDATASIZE, 0) == -1) {
+		perror("recv");
+		close(sock_fd);
+		exit(1);
 	}
-	close(sockfd);
+	printf("%s \n",buf);
+	
+	if (strcmp(buf,"authPass")!=0){ // not equal
+		printf("Authentication Failed");
+		close(sock_fd);
+		exit(0);
+	} else {
+		printf("Authentication Accepted");
+	}
+	
+	//----------------------------------------------------------------------------------
+	// Main Connection Loop
+	while (1){
+		
+		break;
+				
+		//***hangman title
+		
+		
+		//***leaderboard
+		
+		//***hangman game loop
+		
+		
+		//getMessage(sock_fd,buf);
+		//printf("%s",buf);
+	}
+	
+	close(sock_fd);
+	exit(0);
 	
 	return 0;
+}
+
+void getMessage(int sock_fd, char * output){
+	char buffer[MAXDATASIZE];
+	if (recv(sock_fd, buffer, MAXDATASIZE, 0) == -1) {
+		perror("recv");
+		close(sock_fd);
+		exit(1);
+	} 
+	//buffer[numbytes] = '\0';
+	printf("%s", *output);
+	strcpy(buffer, output);
+	//outputbuffer;
+	return;
+}
+
+void sendMessage(int sock_fd, char * message){
+	if (send(sock_fd,message, strlen(message),0)== -1) {
+		fprintf(stderr, "Failure Sending Message\n");
+		close(sock_fd);
+		exit(1);
+	}
 }
