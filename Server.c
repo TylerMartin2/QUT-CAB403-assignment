@@ -3,6 +3,7 @@
 #include <stdlib.h> 
 #include <errno.h> 
 #include <string.h> 
+#include <ctype.h>
 #include <sys/types.h> 
 #include <netinet/in.h> 
 #include <sys/socket.h> 
@@ -17,23 +18,26 @@
 	#define DEFAULT_PORT_NO 12345
 	#define MAX_USERS 10
 
-	
-//Define Functions
-void debug_printuserlist(); // e.g. debug_printuserlist(&userlist, userCount);
-void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
-void sendMessage(int sock_fd, char * message);
+//define structs
 
-typedef struct {
+typedef struct User {
    char *username;
    char *password;
    int  games_played;
    int   games_won;
 } User;
 
-typedef struct {
+typedef struct Word_pair{
    char *type;
    char *object;
 } Word_pair;
+	
+//Define Functions
+void debug_printuserlist(); // e.g. debug_printuserlist(&userlist, userCount);
+void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
+void sendMessage(int sock_fd, char * message);
+int userCompare(); // 1 is up, -1 is down, 0 is same
+
 
 //Begin Program
 int main(int argc, char *argv[]){
@@ -101,7 +105,7 @@ int main(int argc, char *argv[]){
 	userCount = currentUser;
 	memset(&buffer[0], 0, sizeof(buffer));
 	
-	debug_printuserlist(&userlist, userCount);
+	//debug_printuserlist(&userlist, userCount);
 	
 //------------------------------------------------------------------
 // generate socket & listen
@@ -151,9 +155,6 @@ int main(int argc, char *argv[]){
 		
 		if (!fork()) { //*** thread this currently forked from copy paste
 		
-			
-		
-		
 			//Client Connected & Accepted
 			
 			char *username;
@@ -177,14 +178,14 @@ int main(int argc, char *argv[]){
 			sscanf(buffer, "%s", password);
 			
 			
-			printf(",%s,%s, \n", username, password);
-			printf(",%s,%s, \n", userlist[0].username, userlist[0].password);
+			//printf(",%s,%s, \n", username, password);
+			//printf(",%s,%s, \n", userlist[0].username, userlist[0].password);
 			
 			//check if user registered
 			int authFailed = 1;
 			for (int i = 0; i < userCount; i++ ){		
 				if (strcmp(username, userlist[i].username) == 0 && strcmp(password, userlist[i].password) == 0){
-					printf("user found & pass correct \n");
+					//printf("user found & pass correct \n");
 					authFailed = 0;
 					break;
 				}
@@ -193,7 +194,7 @@ int main(int argc, char *argv[]){
 			//send response to client
 			char * message = malloc(20);
 			if (authFailed == 1){
-				printf("failed auth, quitting \n");
+				//printf("failed auth, quitting \n");
 				message = "authFail";
 			} else {
 				message = "authPass";
@@ -204,17 +205,56 @@ int main(int argc, char *argv[]){
 		//***hangman title
 		
 		
-		//***leaderboard
-		// compareto
-			
-			// while swapped
-			// swapped = false
-				// for user in userlist
-				// compare with previous
-					
+//***leaderboard		
+		//add test changes to userlist here
+		userlist[3].games_played += 1;
+		userlist[3].games_won += 1;
+		userlist[5].games_won += 5;
+		userlist[1].games_played += 1;
+		for(int i=0; i < userCount; i++){
+			userlist[i].games_played += 1;
+		}	
+		//end test user modification section
+		
+		int hasSwapped;
+		User tempUser;
+		User sortedUsers[userCount];
+		memset(sortedUsers, '\0', sizeof(sortedUsers));
+		int sortableUsers = 0;
+		
+		//copy userlist into sortableUsers
+		for(int i=0; i < userCount;i++){
+			if (userlist[i].games_played > 0){
+				memcpy(&sortedUsers[sortableUsers], &userlist[i], sizeof(userlist[i]));
+				sortableUsers += 1;
+			}
+		}
+		
+		//sort users into ssortedUsers array
+		int tempInt = 0;
+		if(sortableUsers > 1){ //enough users to sort
+			do{
+			hasSwapped = 0;
+				for (int i = 1; i < userCount; i++){ // compare whole array
+					tempInt = userCompare(sortedUsers[i-1],sortedUsers[i]);
+					if (tempInt < 1){
+						//swap here
+						tempUser = sortedUsers[i-1];
+						sortedUsers[i-1] = sortedUsers[i];
+						sortedUsers[i] = tempUser;
+						hasSwapped = 1;					
+					}
+				}
+			} while (hasSwapped == 1); // continue until no swaps aka sorted
+		}
+		
+		// sort test print
+		// debug_printuserlist(&userlist, userCount);
+		// printf("------------------------------------\n");
+		// debug_printuserlist(&sortedUsers, userCount);
 		
 		
-		//***hangman game loop
+//***hangman game loop
 		// {
 		// l
 		
@@ -246,8 +286,10 @@ int main(int argc, char *argv[]){
 void debug_printuserlist(User *userlist, int userCount){
 	int currentUser = 0;
 	while(currentUser < userCount){
-		printf("[%s]  [%s]	[%d][%d] \n", userlist[currentUser].username, userlist[currentUser].password,
-			userlist[currentUser].games_played, userlist[currentUser].games_won);
+		if (userlist[currentUser].username != NULL){
+			printf("[%s]  [%s]	[%d][%d] \n", userlist[currentUser].username, userlist[currentUser].password,
+				userlist[currentUser].games_won, userlist[currentUser].games_played);
+		}
 		currentUser++;
 	}
 }
@@ -268,5 +310,54 @@ void sendMessage(int sock_fd, char * message){
 		fprintf(stderr, "Failure Sending Message\n");
 		close(sock_fd);
 		exit(1);
+	}
+}
+
+int userCompare(User user1, User user2){
+	//one is up, -1 is down, 0 is same
+	// less games won is up
+	// less win percent is up
+	// earlier alphabetical is up
+	
+	//games won
+	int gamesWonDiff = user1.games_won - user2.games_won;
+	if (gamesWonDiff < 0){
+		return 1;
+	} else if (gamesWonDiff > 0){
+		return -1;
+	} else{
+		// percentage of games won
+		double winPercentDiff = ((double)user1.games_won/(double)user1.games_played) - 
+			((double)user2.games_won/(double)user2.games_played);
+		if (winPercentDiff < 0){
+			return 1;
+		} else if (winPercentDiff > 0){
+			return -1;
+		} else{
+			// alphabetical order
+				//copy user string
+				//set to lowercase
+				
+			char * tempString1 = malloc(20* sizeof(char));
+			char * tempString2 = malloc(20* sizeof(char));
+			strcpy(	tempString1, user1.username);
+			strcpy( tempString2, user2.username);
+			
+			for(int i = 0; tempString1[i]; i++){
+				tempString1[i] = tolower(tempString1[i]);
+			}
+			for(int i = 0; tempString2[i]; i++){
+			  tempString2[i] = tolower(tempString2[i]);
+			}
+					
+			int usercompare = strcmp(tempString1,tempString2);
+			if (usercompare > 0){
+				return -1;
+			} else if (usercompare < 0){
+				return 1;
+			} else{
+				return 0;
+			}
+		}
 	}
 }
