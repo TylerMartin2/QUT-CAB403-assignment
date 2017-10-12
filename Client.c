@@ -17,11 +17,12 @@ static int getLine (int *buff, size_t sz);
 
 void getMessage(int sock_fd, char buffer[]);
 void sendMessage(int sock_fd, char * message);
-
+int userMenu();
 
 
 int main(int argc, char *argv[]) {
 	int sock_fd, numbytes, readline;  
+	int input;
 	char buf[MAXDATASIZE];
 	char sendbuffer[ARRAY_SIZE];
 	struct hostent *he;
@@ -76,17 +77,53 @@ int main(int argc, char *argv[]) {
 		close(sock_fd);
 		exit(0);
 	} else {
-		printf("Authentication Accepted");
+		printf("Authentication Accepted\n");
 	}
 	
 	//----------------------------------------------------------------------------------
 	// Main Connection Loop
-	while (1){
-		
-		break;
-				
+	while (1){		
 		//***hangman title
+		do
+		{
+			printf("----- Enter your choice: -----\n\n");
+			printf("1. Play Hangman\n");
+			printf("2. Show Leaderboard\n");
+			printf("3. Exit\n\n");
+			printf("Enter your choice [0-2]:");
+	
+			fgets(buf, 1024-1, stdin);
+			sendMessage(sock_fd, buf);
+			input = atoi(buf);
 		
+		} while ((input > 3) || (input < 1));
+
+		
+		switch(input) 
+		{
+			case 1:
+				printf("1");
+			case 2:
+				printf("2");
+				
+			case 3:
+				printf("3");
+				exit(0);
+				
+		}
+		//char * message = malloc(20);
+		/* if (userMenu() == 1) {
+			strcpy(sendbuffer, "game");
+			sendMessage(sock_fd, sendbuffer);
+		} else if (userMenu() == 2) {
+			strcpy(sendbuffer, "leaderboard");
+			sendMessage(sock_fd, sendbuffer);
+		
+		} else {
+			strcpy(sendbuffer, "User has exit");
+			sendMessage(sock_fd, sendbuffer);
+			break;
+		} */
 		
 		//***leaderboard
 		
@@ -120,4 +157,23 @@ void sendMessage(int sock_fd, char * message){
 		close(sock_fd);
 		exit(1);
 	}
+}
+
+int userMenu() {
+	char buffer[1024];
+	int input;
+	
+		do {
+			printf("----- Enter your choice: -----\n\n");
+			printf("1. Play Hangman\n");
+			printf("2. Show Leaderboard\n");
+			printf("3. Quit\n\n");
+			printf("Selection option 1-3: ");
+	
+			fgets(buffer, sizeof(buffer), stdin);
+			input = atoi(buffer);
+		
+		} while ((input > 3) || (input < 1));
+		
+		return input;
 }

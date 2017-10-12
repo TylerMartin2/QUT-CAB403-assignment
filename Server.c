@@ -200,10 +200,19 @@ int main(int argc, char *argv[]){
 				message = "authPass";
 			}
 			sendMessage(new_fd, message);
-			
+		
 		
 		//***hangman title
+			while(1) {
+				
+				getMessage(new_fd, buffer);
+				if (strcmp(buffer, "1") ==0) {
+					printf("game");
 		
+				} else if (strcmp(buffer, "2")==0) {
+					printf("show leaderboard");
+				}
+			}
 		
 //***leaderboard		
 		//add test changes to userlist here
