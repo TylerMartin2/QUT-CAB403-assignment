@@ -73,9 +73,9 @@ int main(int argc, char *argv[]) {
 	getMessage(sock_fd, buf);
 	
 	if (strcmp(buf,"authPass")!=0){ // not equal
-		printf("Authentication Failed");
-		close(sock_fd);
-		exit(0);
+		printf("Authentication Failed \n");
+		//close(sock_fd);
+		//exit(0);
 	} else {
 		printf("Authentication Accepted\n");
 	}
@@ -84,31 +84,42 @@ int main(int argc, char *argv[]) {
 	// Main Connection Loop
 	while (1){		
 		//***hangman title
-		do
-		{
-			printf("----- Enter your choice: -----\n\n");
-			printf("1. Play Hangman\n");
-			printf("2. Show Leaderboard\n");
-			printf("3. Exit\n\n");
-			printf("Enter your choice [0-2]:");
+		// do
+		// {
+			// printf("----- Enter your choice: -----\n\n");
+			// printf("1. Play Hangman\n");
+			// printf("2. Show Leaderboard\n");
+			// printf("3. Exit\n\n");
+			// printf("Enter your choice [0-2]:");
 	
-			fgets(buf, 1024-1, stdin);
-			sendMessage(sock_fd, buf);
-			input = atoi(buf);
+			// fgets(buf,1024-1,stdin);
+			// printf("\nbuf =%s. \n", buf);
+			// buf[1] = '\0';
+			
+			// input = atoi(buf);
+			// printf("input =%d. \n", input);
+			
+			// if ((input > 3) || (input < 1)){
+				// printf("please enter a number within the range supplied \n");
+			// }
 		
-		} while ((input > 3) || (input < 1));
+		// } while ((input > 3) || (input < 1));
 
-		
-		switch(input) 
+		int selection = userMenu(sock_fd);
+		printf("\ninput =%d. \n", selection);
+		switch(selection)
 		{
 			case 1:
-				printf("1");
+				printf("game\n");
+				break;
 			case 2:
-				printf("2");
+				printf("leaderboard\n");
+				break;
 				
 			case 3:
-				printf("3");
+				printf("quit");
 				exit(0);
+				break;
 				
 		}
 		//char * message = malloc(20);
@@ -148,10 +159,15 @@ void getMessage(int sock_fd, char buffer[]){
 		exit(1);
 	} 
 	buffer[numbytes] = '\0';
+	for (int i =0;i<strlen(buffer);i++){
+		if(buffer[i] == '\n'){
+			buffer[i] = '\0';
+		}
+	}	
 }
 
 
-void sendMessage(int sock_fd, char * message){
+void sendMessage(int sock_fd, char *message){
 	if (send(sock_fd,message, strlen(message),0)== -1) {
 		fprintf(stderr, "Failure Sending Message\n");
 		close(sock_fd);
@@ -159,7 +175,7 @@ void sendMessage(int sock_fd, char * message){
 	}
 }
 
-int userMenu() {
+int userMenu(int sock_fd) {
 	char buffer[1024];
 	int input;
 	
@@ -171,7 +187,12 @@ int userMenu() {
 			printf("Selection option 1-3: ");
 	
 			fgets(buffer, sizeof(buffer), stdin);
+			sendMessage(sock_fd, buffer);
 			input = atoi(buffer);
+			
+			if ((input > 3) || (input < 1)){
+				printf("please enter a number within the range supplied \n");
+			}
 		
 		} while ((input > 3) || (input < 1));
 		

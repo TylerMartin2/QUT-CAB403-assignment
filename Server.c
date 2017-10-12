@@ -203,15 +203,21 @@ int main(int argc, char *argv[]){
 		
 		
 		//***hangman title
+
 			while(1) {
-				
 				getMessage(new_fd, buffer);
+				printf("user selected:%s. \n", buffer);
 				if (strcmp(buffer, "1") ==0) {
-					printf("game");
+					printf("game\n");
 		
 				} else if (strcmp(buffer, "2")==0) {
-					printf("show leaderboard");
+					printf("show leaderboard\n");
+				} else if (strcmp(buffer, "3")==0){
+					printf("user quit\n");
+					close(new_fd);
+					exit(0);
 				}
+				
 			}
 		
 //***leaderboard		
@@ -264,6 +270,8 @@ int main(int argc, char *argv[]){
 		
 		
 //***hangman game loop
+
+
 		// {
 		// l
 		
@@ -311,6 +319,11 @@ void getMessage(int sock_fd, char buffer[]){
 		exit(1);
 	} 
 	buffer[numbytes] = '\0';
+	for (int i =0;i<strlen(buffer);i++){
+		if(buffer[i] == '\n'){
+			buffer[i] = '\0';
+		}
+	}
 }
 
 
