@@ -208,7 +208,37 @@ int main(int argc, char *argv[]){
 				getMessage(new_fd, buffer);
 				printf("user selected:%s. \n", buffer);
 				if (strcmp(buffer, "1") ==0) {
+					char word[] = "elephant";
+					int guesses_left = 10;
+					int word_size;
+					char temp[10] = "";
+					
+					word_size = strlen(word);
 					printf("game\n");
+					printf("test2\n");
+					printf("%d", guesses_left);
+					//sprintf(buffer, "%d", word_size);
+					//sendMessage(new_fd, buffer);
+					//printf("%s\n", buffer);
+					for (int i = 0; i < word_size; i++) {
+						temp[i] = *"_";
+					}
+					strcpy(buffer, temp);
+					sendMessage(new_fd, buffer);
+					while(guesses_left > 0) {
+						getMessage(new_fd, buffer);
+						printf("typed %s\n", buffer);
+						for (int i = 0; i < sizeof(word)/sizeof(char); i++){
+							if (*buffer == word[i]){
+							//printf("%c", *buffer);
+							temp[i]= word[i];
+							}
+						}
+						strcpy(buffer, temp);
+						sendMessage(new_fd, buffer);
+					}
+					
+					
 		
 				} else if (strcmp(buffer, "2")==0) {
 					printf("show leaderboard\n");

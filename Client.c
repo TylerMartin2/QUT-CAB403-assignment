@@ -74,8 +74,8 @@ int main(int argc, char *argv[]) {
 	
 	if (strcmp(buf,"authPass")!=0){ // not equal
 		printf("Authentication Failed \n");
-		//close(sock_fd);
-		//exit(0);
+		close(sock_fd);
+		exit(0);
 	} else {
 		printf("Authentication Accepted\n");
 	}
@@ -107,20 +107,66 @@ int main(int argc, char *argv[]) {
 
 		int selection = userMenu(sock_fd);
 		printf("\ninput =%d. \n", selection);
-		switch(selection)
-		{
-			case 1:
-				printf("game\n");
-				break;
-			case 2:
+		if (selection == 1) {
+			char guessed_letters[10] = "";
+			int guesses_left = 10;
+			int word_size;
+			int counter = 0;
+			//char my_string[] = "elephant";
+			char temp[10] = "";
+			printf("game\n");
+			printf("%d", guesses_left);
+			
+				
+			getMessage(sock_fd, buf);
+			printf("No of letters %s\n", buf);
+			//sscanf(buf, "%c", &word_size, temp);
+			//printf("something %d\n", word_size);
+			strcpy(temp, buf);
+			printf("%c", temp[2]);
+			word_size = strlen(temp);
+			//getMessage(sock_fd, buf);
+			//sscanf(buf, "%c", temp);
+			/* for (int i = 0; i < word_size; i++) {
+				temp[i] = *"_";
+			} */
+			while (guesses_left > 0) {
+				for (int i = 0; i<sizeof(guessed_letters)/sizeof(char); i++){
+					printf("%c", guessed_letters[i]);
+				}
+				printf("\nNumber of guesses left: %d\n", guesses_left);
+				for (int i = 0; i < word_size; i++){
+					printf("%c", temp[i]);
+					
+				}
+				printf("\nEnter guess:");
+				fgets(buf, sizeof(buf), stdin);
+				sendMessage(sock_fd, buf);
+				guesses_left--;
+				guessed_letters[counter]=*buf;
+				counter++;
+				getMessage(sock_fd, buf);
+				strcpy(temp, buf);
+				/* for (int i = 0; i < sizeof(my_string)/sizeof(char); i++){
+					if (*buf == my_string[i]){
+						//printf("%c", *buffer);
+						temp[i]= my_string[i];
+					}
+				} */
+			}
+				
+			
+			
+		} else if (selection == 2) {
 				printf("leaderboard\n");
 				break;
 				
-			case 3:
+		} else {
+			
 				printf("quit");
 				exit(0);
 				break;
-				
+		
 		}
 		//char * message = malloc(20);
 		/* if (userMenu() == 1) {
