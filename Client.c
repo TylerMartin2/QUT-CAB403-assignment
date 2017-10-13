@@ -84,62 +84,51 @@ int main(int argc, char *argv[]) {
 	// Main Connection Loop
 	while (1){		
 		//***hangman title
-		// do
-		// {
-			// printf("----- Enter your choice: -----\n\n");
-			// printf("1. Play Hangman\n");
-			// printf("2. Show Leaderboard\n");
-			// printf("3. Exit\n\n");
-			// printf("Enter your choice [0-2]:");
-	
-			// fgets(buf,1024-1,stdin);
-			// printf("\nbuf =%s. \n", buf);
-			// buf[1] = '\0';
-			
-			// input = atoi(buf);
-			// printf("input =%d. \n", input);
-			
-			// if ((input > 3) || (input < 1)){
-				// printf("please enter a number within the range supplied \n");
-			// }
 		
-		// } while ((input > 3) || (input < 1));
-
 		int selection = userMenu(sock_fd);
-		printf("\ninput =%d. \n", selection);
+		
 		if (selection == 1) {
-			char guessed_letters[10] = "";
+			char guessed_letters[30] = "";
+			char temp[50] = "";
 			int guesses_left = 10;
 			int word_size;
+			int won_game = 0;
 			int counter = 0;
-			//char my_string[] = "elephant";
-			char temp[10] = "";
-			printf("game\n");
-			printf("%d", guesses_left);
 			
-				
 			getMessage(sock_fd, buf);
-			printf("No of letters %s\n", buf);
-			//sscanf(buf, "%c", &word_size, temp);
-			//printf("something %d\n", word_size);
 			strcpy(temp, buf);
-			printf("%c", temp[2]);
 			word_size = strlen(temp);
-			//getMessage(sock_fd, buf);
-			//sscanf(buf, "%c", temp);
-			/* for (int i = 0; i < word_size; i++) {
-				temp[i] = *"_";
-			} */
+		
 			while (guesses_left > 0) {
-				for (int i = 0; i<sizeof(guessed_letters)/sizeof(char); i++){
+				printf("\n\nGuessed letters: ");
+				
+				for (int i = 0; i < sizeof(guessed_letters)/sizeof(char); i++){
 					printf("%c", guessed_letters[i]);
 				}
+				
 				printf("\nNumber of guesses left: %d\n", guesses_left);
+				printf("Word: ");
+				
 				for (int i = 0; i < word_size; i++){
 					printf("%c", temp[i]);
-					
 				}
-				printf("\nEnter guess:");
+				
+				printf("\n");
+				
+				int letters_left = 0;
+				
+				for (int i = 0; i < word_size; i++) {
+					if (temp[i] == *"_") {
+						letters_left++;
+					}
+				}
+				
+				if (letters_left == 0) {
+					won_game = 1;
+					break;
+				}
+				
+				printf("Enter your guess: ");
 				fgets(buf, sizeof(buf), stdin);
 				sendMessage(sock_fd, buf);
 				guesses_left--;
@@ -147,48 +136,37 @@ int main(int argc, char *argv[]) {
 				counter++;
 				getMessage(sock_fd, buf);
 				strcpy(temp, buf);
-				/* for (int i = 0; i < sizeof(my_string)/sizeof(char); i++){
-					if (*buf == my_string[i]){
-						//printf("%c", *buffer);
-						temp[i]= my_string[i];
-					}
-				} */
 			}
+			
+			if (won_game == 1 && guesses_left >= 0) {
+				printf("\nGame over\n\n");
+				printf("Well done! You won this round of Hangman!\n\n");
+			} else {
+				printf("\n\nGuessed letters: ");
 				
-			
-			
+				for (int i = 0; i < sizeof(guessed_letters)/sizeof(char); i++){
+					printf("%c", guessed_letters[i]);
+				}
+				
+				printf("\nNumber of guesses left: %d\n", guesses_left);
+				printf("Word: ");
+				
+				for (int i = 0; i < word_size; i++){
+					printf("%c", temp[i]);
+				}
+				
+				printf("\n");
+				printf("\nGame over\n\n");
+				printf("Bad luck! You have run out of guesses. The Hangman got you!\n\n");
+			}			
 		} else if (selection == 2) {
 				printf("leaderboard\n");
-				break;
+				//break;
 				
 		} else {
-			
 				printf("quit");
 				exit(0);
-				break;
-		
 		}
-		//char * message = malloc(20);
-		/* if (userMenu() == 1) {
-			strcpy(sendbuffer, "game");
-			sendMessage(sock_fd, sendbuffer);
-		} else if (userMenu() == 2) {
-			strcpy(sendbuffer, "leaderboard");
-			sendMessage(sock_fd, sendbuffer);
-		
-		} else {
-			strcpy(sendbuffer, "User has exit");
-			sendMessage(sock_fd, sendbuffer);
-			break;
-		} */
-		
-		//***leaderboard
-		
-		//***hangman game loop
-		
-		
-		//getMessage(sock_fd,buf);
-		//printf("%s",buf);
 	}
 	
 	close(sock_fd);
@@ -226,7 +204,7 @@ int userMenu(int sock_fd) {
 	int input;
 	
 		do {
-			printf("----- Enter your choice: -----\n\n");
+			printf("\n----- Enter your choice: -----\n\n");
 			printf("1. Play Hangman\n");
 			printf("2. Show Leaderboard\n");
 			printf("3. Quit\n\n");

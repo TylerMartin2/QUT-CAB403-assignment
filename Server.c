@@ -206,44 +206,63 @@ int main(int argc, char *argv[]){
 
 			while(1) {
 				getMessage(new_fd, buffer);
-				printf("user selected:%s. \n", buffer);
-				if (strcmp(buffer, "1") ==0) {
+				printf("User Selected: %s. \n", buffer);
+				
+				if (strcmp(buffer, "1") == 0) {
 					char word[] = "elephant";
+					char temp[50] = "";
 					int guesses_left = 10;
 					int word_size;
-					char temp[10] = "";
+					int won_game = 0;
 					
 					word_size = strlen(word);
-					printf("game\n");
-					printf("test2\n");
-					printf("%d", guesses_left);
-					//sprintf(buffer, "%d", word_size);
-					//sendMessage(new_fd, buffer);
-					//printf("%s\n", buffer);
+					printf("Game Start\n");
+					
 					for (int i = 0; i < word_size; i++) {
 						temp[i] = *"_";
 					}
+					
 					strcpy(buffer, temp);
 					sendMessage(new_fd, buffer);
+					
 					while(guesses_left > 0) {
 						getMessage(new_fd, buffer);
-						printf("typed %s\n", buffer);
+						printf("User Guessed: %s\n", buffer);
+						guesses_left--;
+						
 						for (int i = 0; i < sizeof(word)/sizeof(char); i++){
 							if (*buffer == word[i]){
-							//printf("%c", *buffer);
 							temp[i]= word[i];
 							}
 						}
+						
 						strcpy(buffer, temp);
 						sendMessage(new_fd, buffer);
+						
+						int left = 0;
+						
+						for (int i = 0; i < word_size; i++) {
+							if (temp[i] == *"_") {
+								left++;
+							}
+						}
+						
+						if (left == 0) {
+							won_game = 1;
+							break;
+						}
 					}
-					
-					
-		
-				} else if (strcmp(buffer, "2")==0) {
-					printf("show leaderboard\n");
-				} else if (strcmp(buffer, "3")==0){
-					printf("user quit\n");
+					if (won_game == 1) {
+						printf("Player Won\n");
+					} else {
+						printf("Player Lost\n");
+					}
+				} else if (strcmp(buffer, "2")== 0) {
+					printf("Show Leaderboard\n");
+					printf("%s", userlist[userCount-1].username);
+					fgets(buffer,1024-1,stdin);
+				} else if (strcmp(buffer, "3")== 0){
+					printf("User Quit\n");
 					close(new_fd);
 					exit(0);
 				}
