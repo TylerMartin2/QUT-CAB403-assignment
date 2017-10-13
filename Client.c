@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 		if (selection == 1) {
 			char guessed_letters[30] = "";
 			char temp[50] = "";
-			int guesses_left = 10;
+			int guesses_left;
 			int word_size;
 			int won_game = 0;
 			int counter = 0;
@@ -98,6 +98,12 @@ int main(int argc, char *argv[]) {
 			getMessage(sock_fd, buf);
 			strcpy(temp, buf);
 			word_size = strlen(temp);
+			
+			if ((word_size - 1 + 10) < 26) {
+				guesses_left = (word_size -1 + 10);
+			} else {
+				guesses_left = 26;
+			}
 		
 			while (guesses_left > 0) {
 				printf("\n\nGuessed letters: ");

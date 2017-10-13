@@ -10,6 +10,7 @@
 #include <sys/wait.h> 
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 	#define MAXDATASIZE 100
 	#define ARRAY_SIZE 30  /* Size of array to receive */
@@ -203,23 +204,39 @@ int main(int argc, char *argv[]){
 		
 		
 		//***hangman title
-
+			srand(time(NULL));
 			while(1) {
 				getMessage(new_fd, buffer);
 				printf("User Selected: %s. \n", buffer);
 				
 				if (strcmp(buffer, "1") == 0) {
-					char word[] = "elephant";
+					char word[50] = "";
 					char temp[50] = "";
-					int guesses_left = 10;
+					int guesses_left;
 					int word_size;
 					int won_game = 0;
+					int r = rand() % 289;
 					
+					strcat(word, words[r].type);
+					strcat(word, " ");
+					strcat(word, words[r].object);
 					word_size = strlen(word);
-					printf("Game Start\n");
 					
+					if ((word_size - 1 + 10) < 26) {
+						guesses_left = (word_size -1 + 10);
+					} else {
+						guesses_left = 26;
+					}
+					
+					printf("Game Start\n");
+					printf("%s\n", word);
+				
 					for (int i = 0; i < word_size; i++) {
-						temp[i] = *"_";
+						if (word[i] == *" ") {
+							temp[i] = word[i];
+						} else {
+							temp[i] = *"_";
+						}
 					}
 					
 					strcpy(buffer, temp);
@@ -259,7 +276,7 @@ int main(int argc, char *argv[]){
 					}
 				} else if (strcmp(buffer, "2")== 0) {
 					printf("Show Leaderboard\n");
-					printf("%s", userlist[userCount-1].username);
+					printf("%s%d", words[0].type, numWords);
 					fgets(buffer,1024-1,stdin);
 				} else if (strcmp(buffer, "3")== 0){
 					printf("User Quit\n");
