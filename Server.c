@@ -198,10 +198,14 @@ int main(int argc, char *argv[]){
 			if (authFailed == 1){
 				//printf("failed auth, quitting \n");
 				message = "authFail";
+				sendMessage(new_fd, message);
+				close(new_fd);
+				exit(0);
 			} else {
 				message = "authPass";
+				sendMessage(new_fd, message);
 			}
-			sendMessage(new_fd, message);
+			//sendMessage(new_fd, message);
 		
 		
 		//***hangman title
