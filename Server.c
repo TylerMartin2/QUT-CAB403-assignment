@@ -199,7 +199,7 @@ int main(int argc, char *argv[]){
 				message = "authPass";
 				sendMessage(new_fd, message);
 			}
-			free(message);
+			//free(message);
 
 		
 		
@@ -215,7 +215,7 @@ int main(int argc, char *argv[]){
 					int guesses_left;
 					int word_size;
 					int won_game = 0;
-					int r = rand() % 289;
+					int r = rand() % numWords;
 					
 					strcat(word, words[r].type);
 					strcat(word, " ");
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]){
 					
 					printf("Game Start\n");
 					printf("%s\n", word);
-				
+					
 					for (int i = 0; i < word_size; i++) {
 						if (word[i] == *" ") {
 							temp[i] = word[i];
@@ -278,18 +278,25 @@ int main(int argc, char *argv[]){
 						userlist[currentUser].games_played++;
 					}
 				} else if (strcmp(buffer, "2")== 0) {
-					int games_played;
+					int players;
 					
 					memset(&buffer[0], 0, sizeof(buffer));
-					
+					sortUsers(&userlist, &sortedUsers, userCount);
+					players = sizeof(sortedUsers)/sizeof(sortedUsers[0]);
 					printf("Show Leaderboard\n");
+					sprintf(buffer, "%d", players);
+					sendMessage(new_fd, buffer);
+					printf("%s\n", buffer);
+					usleep(500);
+					//games_played = userlist[currentUser].games_played;
 					
-					games_played = userlist[currentUser].games_played;
-					
-					if (games_played > 0) {
-						sprintf(buffer, "%s %d %d", userlist[currentUser].username, userlist[currentUser].games_won, userlist[currentUser].games_played);
-						sendMessage(new_fd, buffer);
-						printf("%s\n", buffer);
+					if (players > 0) {
+						for (int i = 0; i < players; i++) {
+							sprintf(buffer, "%s %d %d", userlist[i].username, userlist[i].games_won, userlist[i].games_played);
+							sendMessage(new_fd, buffer);
+							printf("%s\n", buffer);
+							usleep(500);
+						}
 					} else {
 						sendMessage(new_fd, "none");
 						printf("%s\n", buffer);
