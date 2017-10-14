@@ -188,6 +188,7 @@ int main(int argc, char *argv[]){
 				if (strcmp(username, userlist[i].username) == 0 && strcmp(password, userlist[i].password) == 0){
 					//printf("user found & pass correct \n");
 					authFailed = 0;
+					currentUser = i;
 					break;
 				}
 			}
@@ -271,13 +272,36 @@ int main(int argc, char *argv[]){
 					}
 					if (won_game == 1) {
 						printf("Player Won\n");
+						userlist[currentUser].games_played++;
+						userlist[currentUser].games_won ++;
 					} else {
 						printf("Player Lost\n");
+						userlist[currentUser].games_played++;
 					}
 				} else if (strcmp(buffer, "2")== 0) {
+					memset(&buffer[0], 0, sizeof(buffer));
+					
 					printf("Show Leaderboard\n");
-					printf("%s%d", words[0].type, numWords);
-					fgets(buffer,1024-1,stdin);
+					//strcat(buffer, "\nPlayer - ");
+					//strcat(buffer, userlist[currentUser].username);
+					//strcat(buffer, "\nNumber of games won - ");
+					sprintf(buffer, "\nPlayer - %s", userlist[currentUser].username);
+					sendMessage(new_fd, buffer);
+					usleep(500);
+					sprintf(buffer, "\nNumber of games won - %d", userlist[currentUser].games_won);
+					sendMessage(new_fd, buffer);
+					usleep(500);
+					sprintf(buffer, "\nNumber of games played - %d", userlist[currentUser].games_played);
+					sendMessage(new_fd, buffer);
+					//strcat(buffer, "\nNumber of games played - ");
+					//strcat(buffer, (char*) userlist[currentUser].games_played);
+					//strcpy(buffer, printf("%s", userlist[currentUser].games_played);
+					
+					printf("%s\n", buffer);
+					
+					
+					
+					
 				} else if (strcmp(buffer, "3")== 0){
 					printf("User Quit\n");
 					close(new_fd);

@@ -62,11 +62,13 @@ int main(int argc, char *argv[]) {
 	
 	printf("Enter Username: ");
 	fgets(sendbuffer,1024-1,stdin);
+	sendbuffer[strlen(sendbuffer)-1] = '\0';
 	sendMessage(sock_fd, sendbuffer);
 	
 		
 	printf("Enter Password: ");
 	fgets(sendbuffer,1024-1,stdin);
+	sendbuffer[strlen(sendbuffer)-1] = '\0';
 	sendMessage(sock_fd, sendbuffer);
 	
 	//result
@@ -135,10 +137,11 @@ int main(int argc, char *argv[]) {
 				}
 				
 				printf("Enter your guess: ");
-				fgets(buf, sizeof(buf), stdin);
-				sendMessage(sock_fd, buf);
+				fgets(sendbuffer, sizeof(sendbuffer), stdin);
+				sendbuffer[strlen(sendbuffer)-1] = '\0';
+				sendMessage(sock_fd, sendbuffer);
 				guesses_left--;
-				guessed_letters[counter]=*buf;
+				guessed_letters[counter]=*sendbuffer;
 				counter++;
 				getMessage(sock_fd, buf);
 				strcpy(temp, buf);
@@ -166,9 +169,14 @@ int main(int argc, char *argv[]) {
 				printf("Bad luck! You have run out of guesses. The Hangman got you!\n\n");
 			}			
 		} else if (selection == 2) {
-				printf("leaderboard\n");
-				//break;
-				
+			char temp[1024] = "";
+			//printf("leaderboard\n");
+			
+			getMessage(sock_fd, buf);
+			printf("%s\n", buf);
+		
+		
+			
 		} else {
 				printf("quit");
 				exit(0);
@@ -217,6 +225,7 @@ int userMenu(int sock_fd) {
 			printf("Selection option 1-3: ");
 	
 			fgets(buffer, sizeof(buffer), stdin);
+			buffer[strlen(buffer)-1] = '\0';
 			sendMessage(sock_fd, buffer);
 			input = atoi(buffer);
 			
