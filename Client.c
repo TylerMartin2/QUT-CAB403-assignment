@@ -62,13 +62,13 @@ int main(int argc, char *argv[]) {
 	
 	printf("Enter Username: ");
 	fgets(sendbuffer,1024-1,stdin);
-	sendbuffer[strlen(sendbuffer)-1] = '\0';
+	//sendbuffer[strlen(sendbuffer)-1] = '\0';
 	sendMessage(sock_fd, sendbuffer);
 	
 		
 	printf("Enter Password: ");
 	fgets(sendbuffer,1024-1,stdin);
-	sendbuffer[strlen(sendbuffer)-1] = '\0';
+	//sendbuffer[strlen(sendbuffer)-1] = '\0';
 	sendMessage(sock_fd, sendbuffer);
 	
 	//result
@@ -121,8 +121,15 @@ int main(int argc, char *argv[]) {
 					printf("%c", temp[i]);
 				}
 				
-				printf("\n");
-				
+				printf("\nEnter your guess: ");
+				fgets(sendbuffer, sizeof(sendbuffer), stdin);
+				sendMessage(sock_fd, sendbuffer);
+				guesses_left--;
+				guessed_letters[counter] = *sendbuffer;
+				counter++;
+				getMessage(sock_fd, buf);
+				strcpy(temp, buf);
+
 				int letters_left = 0;
 				
 				for (int i = 0; i < word_size; i++) {
@@ -135,20 +142,22 @@ int main(int argc, char *argv[]) {
 					won_game = 1;
 					break;
 				}
-				
-				printf("Enter your guess: ");
-				fgets(sendbuffer, sizeof(sendbuffer), stdin);
-				sendbuffer[strlen(sendbuffer)-1] = '\0';
-				sendMessage(sock_fd, sendbuffer);
-				guesses_left--;
-				guessed_letters[counter]=*sendbuffer;
-				counter++;
-				getMessage(sock_fd, buf);
-				strcpy(temp, buf);
 			}
 			
 			if (won_game == 1 && guesses_left >= 0) {
-				printf("\nGame over\n\n");
+				printf("\n\nGuessed letters: ");
+				
+				for (int i = 0; i < sizeof(guessed_letters)/sizeof(char); i++){
+					printf("%c", guessed_letters[i]);
+				}
+				
+				printf("\nNumber of guesses left: %d\n", guesses_left);
+				printf("Word: ");
+				
+				for (int i = 0; i < word_size; i++){
+					printf("%c", temp[i]);
+				}
+				printf("\n\nGame over\n\n");
 				printf("Well done! You won this round of Hangman!\n\n");
 			} else {
 				printf("\n\nGuessed letters: ");
@@ -164,21 +173,27 @@ int main(int argc, char *argv[]) {
 					printf("%c", temp[i]);
 				}
 				
-				printf("\n");
-				printf("\nGame over\n\n");
+				printf("\n\nGame over\n\n");
 				printf("Bad luck! You have run out of guesses. The Hangman got you!\n\n");
 			}			
 		} else if (selection == 2) {
-			char temp[1024] = "";
-			//printf("leaderboard\n");
+			char name[10];
+			int won;
+			int played;
 			
+			memset(&buf[0], 0, sizeof(buf));
 			getMessage(sock_fd, buf);
-			printf("%s\n", buf);
-		
-		
 			
+			if (strcmp(buf, "none") == 0) {
+				printf("\n\nThere is no information currently stored in the Leader Board. Try again later\n\n");
+			} else {
+				sscanf(buf, "%s %d %d", name, &won, &played);
+				printf("\n\nPlayer - %s\n", name);
+				printf("Number of games won - %d\n", won);
+				printf("Number of games played - %d\n\n", played);
+			}
 		} else {
-				printf("quit");
+				printf("\n\nGoodbye");
 				exit(0);
 		}
 	}
@@ -225,14 +240,14 @@ int userMenu(int sock_fd) {
 			printf("Selection option 1-3: ");
 	
 			fgets(buffer, sizeof(buffer), stdin);
-			buffer[strlen(buffer)-1] = '\0';
+			//buffer[strlen(buffer)-1] = '\0';
 			sendMessage(sock_fd, buffer);
 			input = atoi(buffer);
 			
 			if ((input > 3) || (input < 1)){
-				printf("please enter a number within the range supplied \n");
+				printf("Please enter a number within the range supplied \n");
 			}
-		
+	
 		} while ((input > 3) || (input < 1));
 		
 		return input;

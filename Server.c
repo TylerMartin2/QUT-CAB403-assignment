@@ -24,8 +24,8 @@
 typedef struct User {
    char *username;
    char *password;
-   int  games_played;
-   int   games_won;
+   int games_played;
+   int games_won;
 } User;
 
 typedef struct Word_pair{
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]){
 			srand(time(NULL));
 			while(1) {
 				getMessage(new_fd, buffer);
-				printf("User Selected: %s. \n", buffer);
+				printf("User Selected: %s\n", buffer);
 				
 				if (strcmp(buffer, "1") == 0) {
 					char word[50] = "";
@@ -243,7 +243,7 @@ int main(int argc, char *argv[]){
 					strcpy(buffer, temp);
 					sendMessage(new_fd, buffer);
 					
-					while(guesses_left > 0) {
+					while (guesses_left > 0) {
 						getMessage(new_fd, buffer);
 						printf("User Guessed: %s\n", buffer);
 						guesses_left--;
@@ -257,15 +257,15 @@ int main(int argc, char *argv[]){
 						strcpy(buffer, temp);
 						sendMessage(new_fd, buffer);
 						
-						int left = 0;
+						int letters_left = 0;
 						
 						for (int i = 0; i < word_size; i++) {
 							if (temp[i] == *"_") {
-								left++;
+								letters_left++;
 							}
 						}
 						
-						if (left == 0) {
+						if (letters_left == 0) {
 							won_game = 1;
 							break;
 						}
@@ -279,35 +279,27 @@ int main(int argc, char *argv[]){
 						userlist[currentUser].games_played++;
 					}
 				} else if (strcmp(buffer, "2")== 0) {
+					int games_played;
+					
 					memset(&buffer[0], 0, sizeof(buffer));
 					
 					printf("Show Leaderboard\n");
-					//strcat(buffer, "\nPlayer - ");
-					//strcat(buffer, userlist[currentUser].username);
-					//strcat(buffer, "\nNumber of games won - ");
-					sprintf(buffer, "\nPlayer - %s", userlist[currentUser].username);
-					sendMessage(new_fd, buffer);
-					usleep(500);
-					sprintf(buffer, "\nNumber of games won - %d", userlist[currentUser].games_won);
-					sendMessage(new_fd, buffer);
-					usleep(500);
-					sprintf(buffer, "\nNumber of games played - %d", userlist[currentUser].games_played);
-					sendMessage(new_fd, buffer);
-					//strcat(buffer, "\nNumber of games played - ");
-					//strcat(buffer, (char*) userlist[currentUser].games_played);
-					//strcpy(buffer, printf("%s", userlist[currentUser].games_played);
 					
-					printf("%s\n", buffer);
+					games_played = userlist[currentUser].games_played;
 					
-					
-					
-					
+					if (games_played > 0) {
+						sprintf(buffer, "%s %d %d", userlist[currentUser].username, userlist[currentUser].games_won, userlist[currentUser].games_played);
+						sendMessage(new_fd, buffer);
+						printf("%s\n", buffer);
+					} else {
+						sendMessage(new_fd, "none");
+						printf("%s\n", buffer);
+					}
 				} else if (strcmp(buffer, "3")== 0){
 					printf("User Quit\n");
 					close(new_fd);
 					exit(0);
 				}
-				
 			}
 		
 //***leaderboard		
