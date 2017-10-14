@@ -17,6 +17,7 @@ static int getLine (int *buff, size_t sz);
 
 void getMessage(int sock_fd, char buffer[]);
 void sendMessage(int sock_fd, char * message);
+void getUserInput();
 int userMenu();
 
 
@@ -61,14 +62,11 @@ int main(int argc, char *argv[]) {
 	// Authentication
 	
 	printf("Enter Username: ");
-	fgets(sendbuffer,1024-1,stdin);
-	//sendbuffer[strlen(sendbuffer)-1] = '\0';
+	getUserInput(sendbuffer, sizeof(sendbuffer));
 	sendMessage(sock_fd, sendbuffer);
-	
 		
 	printf("Enter Password: ");
-	fgets(sendbuffer,1024-1,stdin);
-	//sendbuffer[strlen(sendbuffer)-1] = '\0';
+	getUserInput(sendbuffer, sizeof(sendbuffer));
 	sendMessage(sock_fd, sendbuffer);
 	
 	//result
@@ -122,7 +120,7 @@ int main(int argc, char *argv[]) {
 				}
 				
 				printf("\nEnter your guess: ");
-				fgets(sendbuffer, sizeof(sendbuffer), stdin);
+				getUserInput(sendbuffer, sizeof(sendbuffer));
 				sendMessage(sock_fd, sendbuffer);
 				guesses_left--;
 				guessed_letters[counter] = *sendbuffer;
@@ -211,12 +209,7 @@ void getMessage(int sock_fd, char buffer[]){
 		close(sock_fd);
 		exit(1);
 	} 
-	buffer[numbytes] = '\0';
-	for (int i =0;i<strlen(buffer);i++){
-		if(buffer[i] == '\n'){
-			buffer[i] = '\0';
-		}
-	}	
+	buffer[numbytes] = '\0';	
 }
 
 
@@ -232,23 +225,28 @@ int userMenu(int sock_fd) {
 	char buffer[1024];
 	int input;
 	
-		do {
-			printf("\n----- Enter your choice: -----\n\n");
-			printf("1. Play Hangman\n");
-			printf("2. Show Leaderboard\n");
-			printf("3. Quit\n\n");
-			printf("Selection option 1-3: ");
-	
-			fgets(buffer, sizeof(buffer), stdin);
-			//buffer[strlen(buffer)-1] = '\0';
-			sendMessage(sock_fd, buffer);
-			input = atoi(buffer);
-			
-			if ((input > 3) || (input < 1)){
-				printf("Please enter a number within the range supplied \n");
-			}
-	
-		} while ((input > 3) || (input < 1));
+	do {
+		printf("\n----- Enter your choice: -----\n\n");
+		printf("1. Play Hangman\n");
+		printf("2. Show Leaderboard\n");
+		printf("3. Quit\n\n");
+		printf("Selection option 1-3: ");
+
+		getUserInput(buffer, sizeof(buffer));
+		sendMessage(sock_fd, buffer);
+		input = atoi(buffer);
 		
-		return input;
+		if ((input > 3) || (input < 1)){
+			printf("Please enter a number within the range supplied \n");
+		}
+
+	} while ((input > 3) || (input < 1));
+	
+	return input;
+}
+
+void getUserInput(char * buffer, int size){
+
+	fgets(buffer, size, stdin);
+	buffer[strlen(buffer)-1] = '\0';
 }

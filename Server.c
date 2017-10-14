@@ -38,6 +38,7 @@ void debug_printuserlist(); // e.g. debug_printuserlist(&userlist, userCount);
 void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
 void sendMessage(int sock_fd, char * message);
 int userCompare(); // 1 is up, -1 is down, 0 is same
+void sortUsers();
 
 
 //Begin Program
@@ -53,6 +54,8 @@ int main(int argc, char *argv[]){
 	
 	User userlist[MAX_USERS];
 	int userCount = 0;
+	
+	User sortedUsers[MAX_USERS];
 	
 	Word_pair words[500];
 	int numWords = 0;
@@ -165,22 +168,11 @@ int main(int argc, char *argv[]){
 			password = malloc(15 * sizeof(char));
 			
 			//recv username
-			if (recv(new_fd, buffer, 10,0) == -1) {
-				perror("recv");
-				exit(1);
-			}
-			sscanf(buffer, "%s", username);
+			getMessage(new_fd, username);
+			printf("%s\n", username);
 			
-			//recv password
-			if (recv(new_fd, buffer, 10,0) == -1) {
-                perror("recv");
-				exit(1);
-            }
-			sscanf(buffer, "%s", password);
-			
-			
-			//printf(",%s,%s, \n", username, password);
-			//printf(",%s,%s, \n", userlist[0].username, userlist[0].password);
+			getMessage(new_fd, password);
+			printf("%s\n", password);
 			
 			//check if user registered
 			int authFailed = 1;
@@ -192,6 +184,8 @@ int main(int argc, char *argv[]){
 					break;
 				}
 			}
+			free(username);
+			free(password);
 			
 			//send response to client
 			char * message = malloc(20);
@@ -205,7 +199,8 @@ int main(int argc, char *argv[]){
 				message = "authPass";
 				sendMessage(new_fd, message);
 			}
-			//sendMessage(new_fd, message);
+			free(message);
+
 		
 		
 		//***hangman title
@@ -300,84 +295,29 @@ int main(int argc, char *argv[]){
 						printf("%s\n", buffer);
 					}
 				} else if (strcmp(buffer, "3")== 0){
+					
+					// modification to users (test sorting)
+					userlist[3].games_played += 1;
+					userlist[3].games_won += 1;
+					userlist[5].games_won += 5;
+					userlist[1].games_played += 1;
+					for(int i=0; i < userCount; i++){
+						userlist[i].games_played += 1;
+					}
+					//end test user modification section
+					//sort user function
+					sortUsers( &userlist, &sortedUsers, userCount);
+					//print both user arrays with line between
+					debug_printuserlist(&userlist, userCount);
+					printf("-----------------------------------------\n");
+					debug_printuserlist(&sortedUsers, userCount);
+					
+					
 					printf("User Quit\n");
 					close(new_fd);
 					exit(0);
-				}
+				}				
 			}
-		
-//***leaderboard		
-		//add test changes to userlist here
-		userlist[3].games_played += 1;
-		userlist[3].games_won += 1;
-		userlist[5].games_won += 5;
-		userlist[1].games_played += 1;
-		for(int i=0; i < userCount; i++){
-			userlist[i].games_played += 1;
-		}	
-		//end test user modification section
-		
-		int hasSwapped;
-		User tempUser;
-		User sortedUsers[userCount];
-		memset(sortedUsers, '\0', sizeof(sortedUsers));
-		int sortableUsers = 0;
-		
-		//copy userlist into sortableUsers
-		for(int i=0; i < userCount;i++){
-			if (userlist[i].games_played > 0){
-				memcpy(&sortedUsers[sortableUsers], &userlist[i], sizeof(userlist[i]));
-				sortableUsers += 1;
-			}
-		}
-		
-		//sort users into ssortedUsers array
-		int tempInt = 0;
-		if(sortableUsers > 1){ //enough users to sort
-			do{
-			hasSwapped = 0;
-				for (int i = 1; i < userCount; i++){ // compare whole array
-					tempInt = userCompare(sortedUsers[i-1],sortedUsers[i]);
-					if (tempInt < 1){
-						//swap here
-						tempUser = sortedUsers[i-1];
-						sortedUsers[i-1] = sortedUsers[i];
-						sortedUsers[i] = tempUser;
-						hasSwapped = 1;					
-					}
-				}
-			} while (hasSwapped == 1); // continue until no swaps aka sorted
-		}
-		
-		// sort test print
-		// debug_printuserlist(&userlist, userCount);
-		// printf("------------------------------------\n");
-		// debug_printuserlist(&sortedUsers, userCount);
-		
-		
-//***hangman game loop
-
-
-		// {
-		// l
-		
-		// elephant
-		// _l___a___
-		 // add l to guess list
-		
-		// for _
-			// if no _
-				// you won
-				// wins + 1
-				// break
-			
-		// send buf
-		// +1 guesses
-		// }
-		// if guesses lef < 0
-			// send you lost
-			
-			
 			close(new_fd); // connection close
 			exit(0);
 		}
@@ -405,11 +345,6 @@ void getMessage(int sock_fd, char buffer[]){
 		exit(1);
 	} 
 	buffer[numbytes] = '\0';
-	for (int i =0;i<strlen(buffer);i++){
-		if(buffer[i] == '\n'){
-			buffer[i] = '\0';
-		}
-	}
 }
 
 
@@ -468,4 +403,40 @@ int userCompare(User user1, User user2){
 			}
 		}
 	}
+}
+
+void sortUsers(User *userlist, User *SortedUserList, int numUsers){
+	int sortableUsers = 0;
+	int hasSwapped;
+	User tempUser;
+	
+	//clear old sorted list
+	memset(SortedUserList, '\0', sizeof(SortedUserList));
+	
+	//copy sortable(games_played > 0) users from userlist into sortableUsers
+	for(int i=0; i < numUsers;i++){
+		if (userlist[i].games_played > 0){
+			memcpy(&SortedUserList[sortableUsers], &userlist[i], sizeof(userlist[i]));
+			sortableUsers += 1;
+		}
+	}
+	
+	//sort users into ssortedUsers array
+	int tempInt = 0;
+	
+	if(sortableUsers > 1){ //enough users to sort
+		do{
+		hasSwapped = 0;
+			for (int i = 1; i < numUsers; i++){ // compare whole array
+				tempInt = userCompare(SortedUserList[i-1],SortedUserList[i]);
+				if (tempInt < 1){
+					//swap here
+					tempUser = SortedUserList[i-1];
+					SortedUserList[i-1] = SortedUserList[i];
+					SortedUserList[i] = tempUser;
+					hasSwapped = 1;					
+				}
+			}
+		} while (hasSwapped == 1); // continue until no swaps aka sorted
+	}	
 }
