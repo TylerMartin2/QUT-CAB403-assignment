@@ -278,28 +278,30 @@ int main(int argc, char *argv[]){
 						userlist[currentUser].games_played++;
 					}
 				} else if (strcmp(buffer, "2")== 0) {
-					int players;
+					int players = 0;
 					
 					memset(&buffer[0], 0, sizeof(buffer));
 					sortUsers(&userlist, &sortedUsers, userCount);
-					players = sizeof(sortedUsers)/sizeof(sortedUsers[0]);
 					printf("Show Leaderboard\n");
+					
+					for (int i = 0; i < userCount; i++){
+						if (userlist[i].games_played > 0) {
+							players++;
+						}
+					}
+					
 					sprintf(buffer, "%d", players);
+					printf("Players %s\n", buffer);
 					sendMessage(new_fd, buffer);
-					printf("%s\n", buffer);
 					usleep(500);
-					//games_played = userlist[currentUser].games_played;
 					
 					if (players > 0) {
 						for (int i = 0; i < players; i++) {
-							sprintf(buffer, "%s %d %d", userlist[i].username, userlist[i].games_won, userlist[i].games_played);
+							sprintf(buffer, "%s %d %d", sortedUsers[i].username, sortedUsers[i].games_won, sortedUsers[i].games_played);
 							sendMessage(new_fd, buffer);
 							printf("%s\n", buffer);
 							usleep(500);
 						}
-					} else {
-						sendMessage(new_fd, "none");
-						printf("%s\n", buffer);
 					}
 				} else if (strcmp(buffer, "3")== 0){
 					
