@@ -39,6 +39,9 @@ void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
 void sendMessage(int sock_fd, char * message);
 int userCompare(); // 1 is up, -1 is down, 0 is same
 void sortUsers();
+void gamePlay();
+void importWords(char * filename, Word_pair * output, int * wordCount);
+void importUsers(char * filename, User * output, int * userCount);
 
 
 //Begin Program
@@ -50,8 +53,6 @@ int main(int argc, char *argv[]){
 	struct sockaddr_in their_addr; /* connector's address information */
 	socklen_t sin_size;
 	
-	char buffer[1024] = "0";
-	
 	User userlist[MAX_USERS];
 	int userCount = 0;
 	
@@ -59,57 +60,15 @@ int main(int argc, char *argv[]){
 	
 	Word_pair words[500];
 	int numWords = 0;
-	
-	FILE *file;
-	const char* authFilename = "Authentication.txt";
-	const char* wordsFilename = "hangman_text.txt";
+
+	char* authFilename = "Authentication.txt";
+	char* wordsFilename = "hangman_text.txt";
 	
 //-------------------------------------------------------------------	
-// ***Import hangman word array
+// ***Import word and user arrays
 
-	file = fopen(wordsFilename, "r");
-	if (file == NULL){
-        printf("Could not open file %s",authFilename);
-        return 1;
-    }
-	int wordPairCounter = 0;
-	while (fgets(buffer, sizeof(buffer), file) != NULL){
-		words[wordPairCounter].type = malloc(20*sizeof(char));
-		words[wordPairCounter].object = malloc(20*sizeof(char));
-		sscanf( buffer, "%[^,],%s ", words[wordPairCounter].object, words[wordPairCounter].type);
-		//printf("[%s],[%s] \n", words[wordPairCounter].type, words[wordPairCounter].object);
-		wordPairCounter++;
-	}
-	 fclose(file);
-	 numWords = wordPairCounter;
-	 memset(&buffer[0], 0, sizeof(buffer));
-	
-//-------------------------------------------------------------------
-// import users
-    file = fopen(authFilename, "r");
-    if (file == NULL){
-        printf("Could not open file %s",authFilename);
-        return 1;
-    }
-	int currentUser = -1; //-1 to prevent header
-	while (fgets(buffer, sizeof(buffer), file) != NULL){
-		if (currentUser < 0){ //skip header line
-			currentUser++;
-			continue;
-		}
-		userlist[currentUser].username = malloc(20*sizeof(char));
-		userlist[currentUser].password = malloc(20*sizeof(char));
-		sscanf( buffer, "%s %s", userlist[currentUser].username,
-			userlist[currentUser].password);
-		userlist[currentUser].games_played = 0;
-		userlist[currentUser].games_won = 0;
-		currentUser++;
-	}
-	fclose(file);
-	userCount = currentUser;
-	memset(&buffer[0], 0, sizeof(buffer));
-	
-	//debug_printuserlist(&userlist, userCount);
+	 importWords(wordsFilename, words , &numWords);
+	 importUsers(authFilename, userlist, &userCount);
 	
 //------------------------------------------------------------------
 // generate socket & listen
@@ -122,17 +81,17 @@ int main(int argc, char *argv[]){
 
 	/* generate the end point */
 	my_addr.sin_family = AF_INET;         /* host byte order */
-	if (argc < 2){
-		my_addr.sin_port = htons(DEFAULT_PORT_NO); /* short, network byte order */
-	} else{
-		my_addr.sin_port = htons(atoi(argv[1]));
-	}
+	my_addr.sin_port = htons(DEFAULT_PORT_NO); //set port to default
+	if (argc > 2){my_addr.sin_port = htons(atoi(argv[1]));}// set port to user specified if available
+		// my_addr.sin_port = htons(DEFAULT_PORT_NO); //set default port if none specified
+	// } else{
+		// my_addr.sin_port = htons(atoi(argv[1])); // set specified port
+	// }
 	my_addr.sin_addr.s_addr = INADDR_ANY; /* auto-fill with my IP */
-		/* bzero(&(my_addr.sin_zero), 8);   ZJL*/     /* zero the rest of the struct */
+	bzero(&(my_addr.sin_zero), 8);       /* zero the rest of the struct */
 
 	/* bind the socket to the end point */
-	if (bind(sock_fd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr)) \
-	== -1) {
+	if (bind(sock_fd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr)) == -1) {
 		perror("bind");
 		exit(1);
 	}
@@ -149,186 +108,15 @@ int main(int argc, char *argv[]){
 
 	while(1) {  
 		sin_size = sizeof(struct sockaddr_in);
-		if ((new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, \
-		&sin_size)) == -1) {
+		if ((new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
 			perror("accept");
 			continue;
 		}
-		printf("server: got connection from %s\n", \
-			inet_ntoa(their_addr.sin_addr));
+		
+		printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
 		
 		if (!fork()) { //*** thread this currently forked from copy paste
-		
-			//Client Connected & Accepted
-			
-			char *username;
-			char *password;
-			
-			username = malloc(15 * sizeof(char));
-			password = malloc(15 * sizeof(char));
-			
-			//recv username
-			getMessage(new_fd, username);
-			printf("%s\n", username);
-			
-			getMessage(new_fd, password);
-			printf("%s\n", password);
-			
-			//check if user registered
-			int authFailed = 1;
-			for (int i = 0; i < userCount; i++ ){		
-				if (strcmp(username, userlist[i].username) == 0 && strcmp(password, userlist[i].password) == 0){
-					//printf("user found & pass correct \n");
-					authFailed = 0;
-					currentUser = i;
-					break;
-				}
-			}
-			free(username);
-			free(password);
-			
-			//send response to client
-			char * message = malloc(20);
-			if (authFailed == 1){
-				//printf("failed auth, quitting \n");
-				message = "authFail";
-				sendMessage(new_fd, message);
-				close(new_fd);
-				exit(0);
-			} else {
-				message = "authPass";
-				sendMessage(new_fd, message);
-			}
-			//free(message);
-
-		
-		
-		//***hangman title
-			srand(time(NULL));
-			while(1) {
-				getMessage(new_fd, buffer);
-				printf("User Selected: %s\n", buffer);
-				
-				if (strcmp(buffer, "1") == 0) {
-					char word[50] = "";
-					char temp[50] = "";
-					int guesses_left;
-					int word_size;
-					int won_game = 0;
-					int r = rand() % numWords;
-					
-					strcat(word, words[r].type);
-					strcat(word, " ");
-					strcat(word, words[r].object);
-					word_size = strlen(word);
-					
-					if ((word_size - 1 + 10) < 26) {
-						guesses_left = (word_size -1 + 10);
-					} else {
-						guesses_left = 26;
-					}
-					
-					printf("Game Start\n");
-					printf("%s\n", word);
-					
-					for (int i = 0; i < word_size; i++) {
-						if (word[i] == *" ") {
-							temp[i] = word[i];
-						} else {
-							temp[i] = *"_";
-						}
-					}
-					
-					strcpy(buffer, temp);
-					sendMessage(new_fd, buffer);
-					
-					while (guesses_left > 0) {
-						getMessage(new_fd, buffer);
-						printf("User Guessed: %s\n", buffer);
-						guesses_left--;
-						
-						for (int i = 0; i < sizeof(word)/sizeof(char); i++){
-							if (*buffer == word[i]){
-							temp[i]= word[i];
-							}
-						}
-						
-						strcpy(buffer, temp);
-						sendMessage(new_fd, buffer);
-						
-						int letters_left = 0;
-						
-						for (int i = 0; i < word_size; i++) {
-							if (temp[i] == *"_") {
-								letters_left++;
-							}
-						}
-						
-						if (letters_left == 0) {
-							won_game = 1;
-							break;
-						}
-					}
-					if (won_game == 1) {
-						printf("Player Won\n");
-						userlist[currentUser].games_played++;
-						userlist[currentUser].games_won ++;
-					} else {
-						printf("Player Lost\n");
-						userlist[currentUser].games_played++;
-					}
-				} else if (strcmp(buffer, "2")== 0) {
-					int players = 0;
-					
-					memset(&buffer[0], 0, sizeof(buffer));
-					sortUsers(&userlist, &sortedUsers, userCount);
-					printf("Show Leaderboard\n");
-					
-					for (int i = 0; i < userCount; i++){
-						if (userlist[i].games_played > 0) {
-							players++;
-						}
-					}
-					
-					sprintf(buffer, "%d", players);
-					printf("Players %s\n", buffer);
-					sendMessage(new_fd, buffer);
-					usleep(500);
-					
-					if (players > 0) {
-						for (int i = 0; i < players; i++) {
-							sprintf(buffer, "%s %d %d", sortedUsers[i].username, sortedUsers[i].games_won, sortedUsers[i].games_played);
-							sendMessage(new_fd, buffer);
-							printf("%s\n", buffer);
-							usleep(500);
-						}
-					}
-				} else if (strcmp(buffer, "3")== 0){
-					
-					// modification to users (test sorting)
-					userlist[3].games_played += 1;
-					userlist[3].games_won += 1;
-					userlist[5].games_won += 5;
-					userlist[1].games_played += 1;
-					for(int i=0; i < userCount; i++){
-						userlist[i].games_played += 1;
-					}
-					//end test user modification section
-					//sort user function
-					sortUsers( &userlist, &sortedUsers, userCount);
-					//print both user arrays with line between
-					debug_printuserlist(&userlist, userCount);
-					printf("-----------------------------------------\n");
-					debug_printuserlist(&sortedUsers, userCount);
-					
-					
-					printf("User Quit\n");
-					close(new_fd);
-					exit(0);
-				}				
-			}
-			close(new_fd); // connection close
-			exit(0);
+			gamePlay(new_fd, &userlist, userCount, &words, numWords);
 		}
 
 		while(waitpid(-1,NULL,WNOHANG) > 0); // clean up threading here
@@ -355,7 +143,6 @@ void getMessage(int sock_fd, char buffer[]){
 	} 
 	buffer[numbytes] = '\0';
 }
-
 
 void sendMessage(int sock_fd, char * message){
 	if (send(sock_fd,message, strlen(message),0)== -1) {
@@ -448,4 +235,226 @@ void sortUsers(User *userlist, User *SortedUserList, int numUsers){
 			}
 		} while (hasSwapped == 1); // continue until no swaps aka sorted
 	}	
+}
+
+void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int numWords){
+	char buffer[1024] = "0";
+	User sortedUsers[MAX_USERS];
+	int currentUser = 0;
+	
+	userlist = userlist;
+	words = words;
+
+	char *username;
+	char *password;
+	
+	username = malloc(15 * sizeof(char));
+	password = malloc(15 * sizeof(char));
+	
+	//recv username
+	getMessage(new_fd, username);
+	printf("%s\n", username);
+	
+	getMessage(new_fd, password);
+	printf("%s\n", password);
+	
+	//check if user registered
+	int authFailed = 1;
+	for (int i = 0; i < userCount; i++ ){		
+		if (strcmp(username, userlist[i].username) == 0 && strcmp(password, userlist[i].password) == 0){
+			//printf("user found & pass correct \n");
+			authFailed = 0;
+			currentUser = i;
+			break;
+		}
+	}
+	free(username);
+	free(password);
+	
+	//send response to client
+	char * message = malloc(20);
+	if (authFailed == 1){
+		//printf("failed auth, quitting \n");
+		message = "authFail";
+		sendMessage(new_fd, message);
+		close(new_fd);
+		exit(0);
+	} else {
+		message = "authPass";
+		sendMessage(new_fd, message);
+	}
+	//free(message);
+
+
+
+//***hangman title
+	srand(time(NULL));
+	while(1) {
+		getMessage(new_fd, buffer);
+		printf("User Selected: %s\n", buffer);
+		
+		if (strcmp(buffer, "1") == 0) {
+			char word[50] = "";
+			char temp[50] = "";
+			int guesses_left;
+			int word_size;
+			int won_game = 0;
+			int r = rand() % numWords;
+			
+			strcat(word, words[r].type);
+			strcat(word, " ");
+			strcat(word, words[r].object);
+			word_size = strlen(word);
+			
+			if ((word_size - 1 + 10) < 26) {
+				guesses_left = (word_size -1 + 10);
+			} else {
+				guesses_left = 26;
+			}
+			
+			printf("Game Start\n");
+			printf("%s\n", word);
+			
+			for (int i = 0; i < word_size; i++) {
+				if (word[i] == *" ") {
+					temp[i] = word[i];
+				} else {
+					temp[i] = *"_";
+				}
+			}
+			
+			strcpy(buffer, temp);
+			sendMessage(new_fd, buffer);
+			
+			while (guesses_left > 0) {
+				getMessage(new_fd, buffer);
+				printf("User Guessed: %s\n", buffer);
+				guesses_left--;
+				
+				for (int i = 0; i < sizeof(word)/sizeof(char); i++){
+					if (*buffer == word[i]){
+					temp[i]= word[i];
+					}
+				}
+				
+				strcpy(buffer, temp);
+				sendMessage(new_fd, buffer);
+				
+				int letters_left = 0;
+				
+				for (int i = 0; i < word_size; i++) {
+					if (temp[i] == *"_") {
+						letters_left++;
+					}
+				}
+				
+				if (letters_left == 0) {
+					won_game = 1;
+					break;
+				}
+			}
+			if (won_game == 1) {
+				printf("Player Won\n");
+				userlist[currentUser].games_played++;
+				userlist[currentUser].games_won ++;
+			} else {
+				printf("Player Lost\n");
+				userlist[currentUser].games_played++;
+			}
+		} else if (strcmp(buffer, "2")== 0) {
+			int players = 0;
+			
+			memset(&buffer[0], 0, sizeof(buffer));
+			sortUsers(userlist, sortedUsers, userCount);
+			printf("Show Leaderboard\n");
+			
+			for (int i = 0; i < userCount; i++){
+				if (userlist[i].games_played > 0) {
+					players++;
+				}
+			}
+			
+			sprintf(buffer, "%d", players);
+			printf("Players %s\n", buffer);
+			sendMessage(new_fd, buffer);
+			usleep(500);
+			
+			if (players > 0) {
+				for (int i = 0; i < players; i++) {
+					sprintf(buffer, "%s %d %d", sortedUsers[i].username, sortedUsers[i].games_won, sortedUsers[i].games_played);
+					sendMessage(new_fd, buffer);
+					printf("%s\n", buffer);
+					usleep(500);
+				}
+			}
+		} else if (strcmp(buffer, "3")== 0){
+			
+			// modification to users (test sorting)
+			userlist[3].games_played += 1;
+			userlist[3].games_won += 1;
+			userlist[5].games_won += 5;
+			userlist[1].games_played += 1;
+			for(int i=0; i < userCount; i++){
+				userlist[i].games_played += 1;
+			}
+			//end test user modification section
+			//sort user function
+			sortUsers( userlist, sortedUsers, userCount);
+			//print both user arrays with line between
+			debug_printuserlist(userlist, userCount);
+			printf("-----------------------------------------\n");
+			debug_printuserlist(sortedUsers, userCount);
+			
+			
+			printf("User Quit\n");
+			close(new_fd);
+			exit(0);
+		}				
+	}
+	close(new_fd); // connection close
+	exit(0);
+}
+
+void importWords(char * filename, Word_pair * output, int * wordCount){
+	char buffer[1024] = "0";
+	FILE *file;
+	
+	file = fopen(filename, "r");
+	if (file == NULL){
+        printf("Could not open file %s",filename);
+    }
+	int wordPairCounter = 0;
+	while (fgets(buffer, sizeof(buffer), file) != NULL){
+		output[wordPairCounter].type = malloc(20*sizeof(char));
+		output[wordPairCounter].object = malloc(20*sizeof(char));
+		sscanf( buffer, "%[^,],%s ", output[wordPairCounter].object, output[wordPairCounter].type);
+		wordPairCounter++;
+	}
+	 fclose(file);
+	 *wordCount = wordPairCounter;
+}
+
+void importUsers(char * filename, User * output, int * userCount){
+	char buffer[1024] = "0";
+	FILE *file;
+	
+	file = fopen(filename, "r");
+    if (file == NULL){
+        printf("Could not open file %s",filename);
+    }
+	int currentUser = -1; //-1 to prevent header
+	while (fgets(buffer, sizeof(buffer), file) != NULL){
+		if (currentUser < 0){ //skip header line
+			currentUser++;
+			continue;
+		}
+		output[currentUser].username = malloc(20*sizeof(char));
+		output[currentUser].password = malloc(20*sizeof(char));
+		sscanf( buffer, "%s %s", output[currentUser].username, output[currentUser].password);
+		output[currentUser].games_played = 0;
+		output[currentUser].games_won = 0;
+		currentUser++;
+	}
+	fclose(file);
+	*userCount = currentUser;
 }
