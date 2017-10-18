@@ -176,23 +176,26 @@ int main(int argc, char *argv[]) {
 			}			
 		} else if (selection == 2) {
 			char name[10];
-			int won;
-			int played;
-			int players;
+			int won = 0;
+			int played = 0;
+			int players = 0;
 			
-			memset(&buf[0], 0, sizeof(buf));
+			//memset(&buf[0], 0, sizeof(buf));
 			getMessage(sock_fd, buf);
-			sscanf(buf, "Players %d", &players);
+			//printf("%s",buf);
+			sscanf(buf, "%d", &players);
+			//printf(".playercount:%d.\n", players);
 			//usleep(500);
-			printf("\n");
 			
 			if (players > 0) {
 				for (int i = 0; i < players; i++) {
 					getMessage(sock_fd, buf);
+					//printf("-%s-",buf);
 					sscanf(buf, "%s %d %d", name, &won, &played);
 					printf("\nPlayer - %s\n", name);
 					printf("Number of games won - %d\n", won);
 					printf("Number of games played - %d\n", played);
+					sendMessage(sock_fd,"received");
 					//usleep(500);
 				}
 			} else {

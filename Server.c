@@ -380,7 +380,7 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			}
 			
 			sprintf(buffer, "%d", players);
-			printf("Players %s\n", buffer);
+			//printf("Players %s\n", buffer);
 			sendMessage(new_fd, buffer);
 			usleep(500);
 			
@@ -388,8 +388,11 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 				for (int i = 0; i < players; i++) {
 					sprintf(buffer, "%s %d %d", sortedUsers[i].username, sortedUsers[i].games_won, sortedUsers[i].games_played);
 					sendMessage(new_fd, buffer);
-					printf("%s\n", buffer);
-					usleep(500);
+					//printf("%s\n", buffer);
+					do{
+						getMessage(new_fd, buffer);
+						usleep(500);
+					}while(strcmp(buffer,"received") != 0);
 				}
 			}
 		} else if (strcmp(buffer, "3")== 0){
