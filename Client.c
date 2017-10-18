@@ -182,17 +182,18 @@ int main(int argc, char *argv[]) {
 			
 			memset(&buf[0], 0, sizeof(buf));
 			getMessage(sock_fd, buf);
-			sscanf(buf, "%d", &players);
-			usleep(500);
+			sscanf(buf, "Players %d", &players);
+			//usleep(500);
+			printf("\n");
 			
 			if (players > 0) {
 				for (int i = 0; i < players; i++) {
 					getMessage(sock_fd, buf);
 					sscanf(buf, "%s %d %d", name, &won, &played);
-					printf("\n\nPlayer - %s\n", name);
+					printf("\nPlayer - %s\n", name);
 					printf("Number of games won - %d\n", won);
-					printf("Number of games played - %d\n\n", played);
-					usleep(500);
+					printf("Number of games played - %d\n", played);
+					//usleep(500);
 				}
 			} else {
 				printf("\n\nThere is no information currently stored in the Leader Board. Try again later\n\n");

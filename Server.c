@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <pthread.h>
 
 	#define MAXDATASIZE 100
 	#define ARRAY_SIZE 30  /* Size of array to receive */
@@ -18,6 +19,7 @@
 	#define RETURNED_ERROR -1
 	#define DEFAULT_PORT_NO 12345
 	#define MAX_USERS 10
+	#define MAX_THREADS 10
 
 //define structs
 
@@ -64,6 +66,17 @@ int main(int argc, char *argv[]){
 	char* authFilename = "Authentication.txt";
 	char* wordsFilename = "hangman_text.txt";
 	
+	int threadID[MAX_THREADS];
+	pthread_t  threads[MAX_THREADS];
+
+//-------------------------------------------------------------------		
+// Thread creation
+/* create the request-handling threads */
+    for (int i=0; i<MAX_THREADS; i++) {
+        threadID[i] = i;
+       //pthread_create(&threads[i], NULL, (void *(*)(void*))gamePlay, (void*)&threadID[i]);
+    }
+	
 //-------------------------------------------------------------------	
 // ***Import word and user arrays
 
@@ -83,10 +96,6 @@ int main(int argc, char *argv[]){
 	my_addr.sin_family = AF_INET;         /* host byte order */
 	my_addr.sin_port = htons(DEFAULT_PORT_NO); //set port to default
 	if (argc > 2){my_addr.sin_port = htons(atoi(argv[1]));}// set port to user specified if available
-		// my_addr.sin_port = htons(DEFAULT_PORT_NO); //set default port if none specified
-	// } else{
-		// my_addr.sin_port = htons(atoi(argv[1])); // set specified port
-	// }
 	my_addr.sin_addr.s_addr = INADDR_ANY; /* auto-fill with my IP */
 	bzero(&(my_addr.sin_zero), 8);       /* zero the rest of the struct */
 
@@ -114,12 +123,8 @@ int main(int argc, char *argv[]){
 		}
 		
 		printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
-		
-		if (!fork()) { //*** thread this currently forked from copy paste
-			gamePlay(new_fd, &userlist, userCount, &words, numWords);
-		}
 
-		while(waitpid(-1,NULL,WNOHANG) > 0); // clean up threading here
+		gamePlay(new_fd, &userlist, userCount, &words, numWords);
 	}
 }
 
@@ -408,11 +413,12 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			
 			printf("User Quit\n");
 			close(new_fd);
-			exit(0);
+			break;
+			//exit(0);
 		}				
 	}
 	close(new_fd); // connection close
-	exit(0);
+	//exit(0);
 }
 
 void importWords(char * filename, Word_pair * output, int * wordCount){
