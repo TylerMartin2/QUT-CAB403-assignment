@@ -13,13 +13,13 @@
 #include <time.h>
 #include <pthread.h>
 
-	#define MAXDATASIZE 100
-	#define ARRAY_SIZE 30  /* Size of array to receive */
-	#define BACKLOG 10     /* how many pending connections queue will hold */
-	#define RETURNED_ERROR -1
-	#define DEFAULT_PORT_NO 12345
-	#define MAX_USERS 10
-	#define MAX_THREADS 10
+#define MAXDATASIZE 100
+#define ARRAY_SIZE 30  /* Size of array to receive */
+#define BACKLOG 10     /* how many pending connections queue will hold */
+#define RETURNED_ERROR -1
+#define DEFAULT_PORT_NO 12345
+#define MAX_USERS 10
+#define MAX_THREADS 10
 
 //define structs
 
@@ -34,6 +34,27 @@ typedef struct Word_pair{
    char *type;
    char *object;
 } Word_pair;
+
+/* Definitions */
+int sock_fd;  /* listen on sock_fd, new connection on new_fd */
+struct sockaddr_in my_addr;    /* my address information */
+struct sockaddr_in their_addr; /* connector's address information */
+socklen_t sin_size;
+
+User userlist[MAX_USERS];
+int userCount = 0;
+int connectedUsers = 0;
+
+User sortedUsers[MAX_USERS];
+
+Word_pair words[500];
+int numWords = 0;
+
+char* authFilename = "Authentication.txt";
+char* wordsFilename = "hangman_text.txt";
+
+int threadID[MAX_THREADS];
+pthread_t threads[MAX_THREADS];
 	
 //Define Functions
 void debug_printuserlist(); // e.g. debug_printuserlist(&userlist, userCount);
@@ -41,7 +62,7 @@ void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
 void sendMessage(int sock_fd, char * message);
 int userCompare(); // 1 is up, -1 is down, 0 is same
 void sortUsers();
-void gamePlay();
+void* gamePlay(void *some_fd);
 void importWords(char * filename, Word_pair * output, int * wordCount);
 void importUsers(char * filename, User * output, int * userCount);
 
@@ -49,33 +70,9 @@ void importUsers(char * filename, User * output, int * userCount);
 //Begin Program
 int main(int argc, char *argv[]){
 	
-	/* Definitions */
-	int sock_fd, new_fd;  /* listen on sock_fd, new connection on new_fd */
-	struct sockaddr_in my_addr;    /* my address information */
-	struct sockaddr_in their_addr; /* connector's address information */
-	socklen_t sin_size;
-	
-	User userlist[MAX_USERS];
-	int userCount = 0;
-	
-	User sortedUsers[MAX_USERS];
-	
-	Word_pair words[500];
-	int numWords = 0;
 
-	char* authFilename = "Authentication.txt";
-	char* wordsFilename = "hangman_text.txt";
-	
-	int threadID[MAX_THREADS];
-	pthread_t  threads[MAX_THREADS];
 
-//-------------------------------------------------------------------		
-// Thread creation
-/* create the request-handling threads */
-    for (int i=0; i<MAX_THREADS; i++) {
-        threadID[i] = i;
-       //pthread_create(&threads[i], NULL, (void *(*)(void*))gamePlay, (void*)&threadID[i]);
-    }
+
 	
 //-------------------------------------------------------------------	
 // ***Import word and user arrays
@@ -104,6 +101,8 @@ int main(int argc, char *argv[]){
 		perror("bind");
 		exit(1);
 	}
+	
+
 
 	/* start listnening */
 	if (listen(sock_fd, BACKLOG) == -1) {
@@ -112,21 +111,45 @@ int main(int argc, char *argv[]){
 	}
 	printf("server starts listnening ...\n");
 	
+
+
+
 //-----------------------------------------------------------------------------
 // toplevel client progress loop
 
-	while(1) {  
-		sin_size = sizeof(struct sockaddr_in);
-		if ((new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
-			perror("accept");
-			continue;
-		}
+	while (1) {  
 		
-		printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
+			int new_fd;
+			sin_size = sizeof(struct sockaddr_in);
+			if ((new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
+				perror("accept");
+				//continue;
+			}
+			
+			//-------------------------------------------------------------------		
+			// Thread creation
+			/* create the request-handling threads */
+			//for (int i=0; i<MAX_THREADS; i++) {
+				threadID[connectedUsers];
+				
+				
+				if (pthread_create(&threads[connectedUsers], NULL, gamePlay, (void *)new_fd)){
+					perror("couldn't create thread");
+					return 1;
+				} 
+				//connectedUsers++;
+				printf("Connected %d", connectedUsers);
+				connectedUsers++;
+				
+			//}
+			
+			printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
 
-		gamePlay(new_fd, &userlist, userCount, &words, numWords);
+			//gamePlay(new_fd, &userlist, userCount, &words, numWords);
+		 
 	}
 }
+
 
 void debug_printuserlist(User *userlist, int userCount){
 	int currentUser = 0;
@@ -242,13 +265,15 @@ void sortUsers(User *userlist, User *SortedUserList, int numUsers){
 	}	
 }
 
-void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int numWords){
+void* gamePlay(void *some_fd){
 	char buffer[1024] = "0";
 	User sortedUsers[MAX_USERS];
 	int currentUser = 0;
+	int new_fd;
+	new_fd = (int)some_fd;
 	
-	userlist = userlist;
-	words = words;
+	//userlist = userlist;
+	//words = words;
 
 	char *username;
 	char *password;
@@ -256,6 +281,7 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 	username = malloc(15 * sizeof(char));
 	password = malloc(15 * sizeof(char));
 	
+	printf("Connected to thread %lu\n", pthread_self());
 	//recv username
 	getMessage(new_fd, username);
 	printf("%s\n", username);
@@ -415,12 +441,12 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			
 			
 			printf("User Quit\n");
-			close(new_fd);
+			//close(new_fd);
 			break;
 			//exit(0);
 		}				
 	}
-	close(new_fd); // connection close
+	//close(new_fd); // connection close
 	//exit(0);
 }
 
