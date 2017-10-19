@@ -26,6 +26,8 @@ pthread_mutex_t request_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 pthread_cond_t  got_request   = PTHREAD_COND_INITIALIZER;
 int num_requests = 0;
 
+//define structs
+
 typedef struct User {
    char *username;
    char *password;
@@ -37,6 +39,7 @@ typedef struct Word_pair{
    char *type;
    char *object;
 } Word_pair;
+
 
 struct request {
     int number;	/* number of the request                  */
@@ -50,8 +53,24 @@ struct request {
 struct request* requests = NULL;     /* head of linked list of requests. */
 struct request* last_request = NULL; /* pointer to last request.         */
 
-//define structs
 
+/* Definitions */
+int sock_fd;  /* listen on sock_fd, new connection on new_fd */
+struct sockaddr_in my_addr;    /* my address information */
+struct sockaddr_in their_addr; /* connector's address information */
+socklen_t sin_size;
+
+User userlist[MAX_USERS];
+int userCount = 0;
+int connectedUsers = 0;
+
+User sortedUsers[MAX_USERS];
+
+Word_pair words[500];
+int numWords = 0;
+
+char* authFilename = "Authentication.txt";
+char* wordsFilename = "hangman_text.txt";
 
 	
 //Define Functions
@@ -60,7 +79,7 @@ void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
 void sendMessage(int sock_fd, char * message);
 int userCompare(); // 1 is up, -1 is down, 0 is same
 void sortUsers();
-void gamePlay();
+void* gamePlay(void *some_fd);
 void importWords(char * filename, Word_pair * output, int * wordCount);
 void importUsers(char * filename, User * output, int * userCount);
 void* handle_requests_loop(void* data);
@@ -73,23 +92,6 @@ struct request* get_request(pthread_mutex_t* p_mutex);
 //Begin Program
 int main(int argc, char *argv[]){
 	
-	/* Definitions */
-	int sock_fd, new_fd;  /* listen on sock_fd, new connection on new_fd */
-	struct sockaddr_in my_addr;    /* my address information */
-	struct sockaddr_in their_addr; /* connector's address information */
-	socklen_t sin_size;
-	
-	User userlist[MAX_USERS];
-	int userCount = 0;
-	
-	User sortedUsers[MAX_USERS];
-	
-	Word_pair words[500];
-	int numWords = 0;
-
-	char* authFilename = "Authentication.txt";
-	char* wordsFilename = "hangman_text.txt";
-	
 	int threadID[MAX_THREADS];
 	pthread_t  threads[MAX_THREADS];
 	struct timespec delay;
@@ -101,6 +103,7 @@ int main(int argc, char *argv[]){
         threadID[i] = i;
         pthread_create(&threads[i], NULL, (void *(*)(void*))handle_requests_loop, (void*)&threadID[i]);
     }
+
 	
 //-------------------------------------------------------------------	
 // ***Import word and user arrays
@@ -129,6 +132,8 @@ int main(int argc, char *argv[]){
 		perror("bind");
 		exit(1);
 	}
+	
+
 
 	/* start listnening */
 	if (listen(sock_fd, BACKLOG) == -1) {
@@ -137,14 +142,19 @@ int main(int argc, char *argv[]){
 	}
 	printf("server starts listnening ...\n");
 	
+
+
+
 //-----------------------------------------------------------------------------
 // toplevel client progress loop
 
-	while(1) {  
+	while (1) {  
+	
+		int new_fd;
 		sin_size = sizeof(struct sockaddr_in);
 		if ((new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
 			perror("accept");
-			continue;
+			//continue;
 		}
 		
 		add_request(new_fd, userlist, userCount, words, numWords, &request_mutex, &got_request);
@@ -160,6 +170,7 @@ int main(int argc, char *argv[]){
 		//gamePlay(new_fd, &userlist, userCount, &words, numWords);
 	}
 }
+
 
 void debug_printuserlist(User *userlist, int userCount){
 	int currentUser = 0;
@@ -275,13 +286,15 @@ void sortUsers(User *userlist, User *SortedUserList, int numUsers){
 	}	
 }
 
-void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int numWords){
+void* gamePlay(void *some_fd){
 	char buffer[1024] = "0";
 	User sortedUsers[MAX_USERS];
 	int currentUser = 0;
+	int new_fd;
+	new_fd = (int)some_fd;
 	
-	userlist = userlist;
-	words = words;
+	//userlist = userlist;
+	//words = words;
 
 	char *username;
 	char *password;
@@ -289,6 +302,7 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 	username = malloc(15 * sizeof(char));
 	password = malloc(15 * sizeof(char));
 	
+	printf("Connected to thread %lu\n", pthread_self());
 	//recv username
 	getMessage(new_fd, username);
 	printf(".%s.\n", username);
@@ -458,12 +472,12 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			
 			
 			printf("User Quit\n");
-			close(new_fd);
+			//close(new_fd);
 			break;
 			//exit(0);
 		}				
 	}
-	close(new_fd); // connection close
+	//close(new_fd); // connection close
 	//exit(0);
 }
 
