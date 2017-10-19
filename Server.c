@@ -79,7 +79,7 @@ void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
 void sendMessage(int sock_fd, char * message);
 int userCompare(); // 1 is up, -1 is down, 0 is same
 void sortUsers();
-void* gamePlay(void *some_fd);
+void gamePlay();
 void importWords(char * filename, Word_pair * output, int * wordCount);
 void importUsers(char * filename, User * output, int * userCount);
 void* handle_requests_loop(void* data);
@@ -286,12 +286,12 @@ void sortUsers(User *userlist, User *SortedUserList, int numUsers){
 	}	
 }
 
-void* gamePlay(void *some_fd){
+void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int numWords){
 	char buffer[1024] = "0";
 	User sortedUsers[MAX_USERS];
 	int currentUser = 0;
-	int new_fd;
-	new_fd = (int)some_fd;
+	//int new_fd;
+	//new_fd = (int)some_fd;
 	
 	//userlist = userlist;
 	//words = words;
