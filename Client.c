@@ -58,6 +58,15 @@ int main(int argc, char *argv[]) {
 		perror("Failed to Connect");
 		exit(1);
 	}
+	
+	//check if server is full
+	getMessage(sock_fd,buf);
+	if (strcmp(buf,"accept")!=0){
+		printf("Max users connected, Try again later");
+		close(sock_fd);
+		exit(0);
+	}
+	
 	//----------------------------------------------------------------------------------
 	// Authentication
 	

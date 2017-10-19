@@ -104,7 +104,6 @@ int main(int argc, char *argv[]){
         pthread_create(&threads[i], NULL, (void *(*)(void*))handle_requests_loop, (void*)&threadID[i]);
     }
 
-	
 //-------------------------------------------------------------------	
 // ***Import word and user arrays
 
@@ -148,19 +147,27 @@ int main(int argc, char *argv[]){
 //-----------------------------------------------------------------------------
 // toplevel client progress loop
 
-	while (1) {  
-	
+	while (1) { 
 		int new_fd;
 		sin_size = sizeof(struct sockaddr_in);
-		if ((new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
-			perror("accept");
-			//continue;
-		}
+		//printf("connectedUsers =%d.\n", connectedUsers);
 		
-		add_request(new_fd, userlist, userCount, words, numWords, &request_mutex, &got_request);
-		
-		printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
-		
+			printf("connectedUsers =%d.\n", connectedUsers);
+			if ((new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
+				perror("accept");
+				//continue;
+			}
+			connectedUsers += 1;
+			if (connectedUsers <= MAX_USERS){
+				sendMessage(new_fd, "accept");
+				add_request(new_fd, userlist, userCount, words, numWords, &request_mutex, &got_request);
+				printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
+			} else {
+				sendMessage(new_fd, "reject");
+				close(new_fd);
+				connectedUsers -= 1;
+			}
+
 		if (rand() > 3*(RAND_MAX/4)) { /* this is done about 25% of the time */
             delay.tv_sec = 0;
             delay.tv_nsec = 10;
@@ -290,11 +297,7 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 	char buffer[1024] = "0";
 	User sortedUsers[MAX_USERS];
 	int currentUser = 0;
-	//int new_fd;
-	//new_fd = (int)some_fd;
-	
-	//userlist = userlist;
-	//words = words;
+
 
 	char *username;
 	char *password;
@@ -310,16 +313,9 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 	getMessage(new_fd, password);
 	printf(".%s.\n", password);
 	
-	
-	printf("-----------------------------------------\n");
-	debug_printuserlist(userlist, userCount);
-	printf("-----------------------------------------\n");
-	
 	//check if user registered
 	int authFailed = 1;
 	for (int i = 0; i < userCount; i++ ){	
-		printf("-%s--%s-",username,userlist[i].username);
-		printf("-%s--%s-",password,userlist[i].password);
 		if (strcmp(username, userlist[i].username) == 0 && strcmp(password, userlist[i].password) == 0){
 			//printf("user found & pass correct \n");
 			authFailed = 0;
@@ -333,19 +329,20 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 	
 	
 	//send response to client
-	char * message = malloc(20);
+	char * message = malloc(20 * sizeof(char));
 	if (authFailed == 1){
 		//printf("failed auth, quitting \n");
-		message = "authFail";
+		strcpy(message, "authFail");
 		sendMessage(new_fd, message);
 		close(new_fd);
-		exit(0);
+		connectedUsers -=1;
+		return;
+		//exit(0);
 	} else {
-		message = "authPass";
+		strcpy(message, "authPass");
 		sendMessage(new_fd, message);
 	}
-	printf(".%s.\n",message);
-	//free(message);
+	free(message);
 
 
 
@@ -472,13 +469,14 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			
 			
 			printf("User Quit\n");
-			//close(new_fd);
-			break;
+			close(new_fd);
+			connectedUsers = connectedUsers - 1;
+			return;
 			//exit(0);
 		}				
 	}
-	//close(new_fd); // connection close
-	//exit(0);
+	close(new_fd);
+	// connection close
 }
 
 void importWords(char * filename, Word_pair * output, int * wordCount){
@@ -525,8 +523,7 @@ void importUsers(char * filename, User * output, int * userCount){
 	*userCount = currentUser;
 }
 
-void* handle_requests_loop(void* data)
-{
+void* handle_requests_loop(void* data){
     int rc;                         /* return code of pthreads functions.  */
     struct request* a_request;      /* pointer to a request.               */
     int thread_id = *((int*)data);  /* thread identifying number           */
@@ -563,8 +560,7 @@ void* handle_requests_loop(void* data)
     }
 }
 
-void handle_request(struct request* a_request, int thread_id)
-{
+void handle_request(struct request* a_request, int thread_id){
     if (a_request) {
         printf("Thread '%d' handled request '%d'\n",
                thread_id, a_request->number);
@@ -574,8 +570,7 @@ void handle_request(struct request* a_request, int thread_id)
 }
 
 void add_request(int request_num, User * userlist, int userCount, Word_pair * words, int numWords, pthread_mutex_t* p_mutex,
-	pthread_cond_t*  p_cond_var)
-{
+	pthread_cond_t*  p_cond_var){
     int rc;                         /* return code of pthreads functions.  */
     struct request* a_request;      /* pointer to newly added request.     */
 
@@ -617,8 +612,7 @@ void add_request(int request_num, User * userlist, int userCount, Word_pair * wo
     rc = pthread_cond_signal(p_cond_var);
 }
 
-struct request* get_request(pthread_mutex_t* p_mutex)
-{
+struct request* get_request(pthread_mutex_t* p_mutex){
     int rc;                         /* return code of pthreads functions.  */
     struct request* a_request;      /* pointer to request.                 */
 
