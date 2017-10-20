@@ -164,7 +164,7 @@ int main(int argc, char *argv[]){
 			//continue;
 			
 		}
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 1; i++) {
 			thr_id[i] = i;
 			if (pthread_create(&p_threads[i], NULL, connection, (void*)&thr_id[i])){
 				perror("couldn't create thread");
@@ -253,7 +253,7 @@ void* connection() {
 		
 		
 		//***hangman title
-			game();
+			game(new_fd, buffer, numWords, words, userlist, currentUser, sortedUsers, userCount);
 		//}
 
 		//while(waitpid(-1,NULL,WNOHANG) > 0); // clean up threading here

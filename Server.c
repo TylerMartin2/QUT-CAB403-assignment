@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <stdio.h> 
 #include <stdlib.h> 
@@ -12,6 +13,7 @@
 #include <errno.h>
 #include <time.h>
 #include <pthread.h>
+#include <signal.h>
 
 	#define MAXDATASIZE 100
 	#define ARRAY_SIZE 30  /* Size of array to receive */
@@ -21,7 +23,10 @@
 	#define MAX_USERS 10
 	#define MAX_THREADS 10
 	
-	
+int rc;	/* readcount */
+pthread_mutex_t rc_mutex;
+pthread_mutex_t r_mutex;
+pthread_mutex_t w_mutex;
 pthread_mutex_t request_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 pthread_cond_t  got_request   = PTHREAD_COND_INITIALIZER;
 int num_requests = 0;
@@ -85,17 +90,27 @@ void importUsers(char * filename, User * output, int * userCount);
 void* handle_requests_loop(void* data);
 void handle_request(struct request* a_request, int thread_id);
 void add_request(int request_num, User * userlist, int userCount, Word_pair * words, int numWords, pthread_mutex_t* p_mutex,
-	pthread_cond_t*  p_cond_var);
+pthread_cond_t*  p_cond_var);
 struct request* get_request(pthread_mutex_t* p_mutex);
-
+void sigInt(int signum);
+int threadID[MAX_THREADS];
+pthread_t  threads[MAX_THREADS];
+struct timespec delay;
+void readerWriteMutexInit();
+void readLock();
+void readUnlock();
+void writeLock();
+void writeUnlock();
 
 //Begin Program
 int main(int argc, char *argv[]){
 	
-	int threadID[MAX_THREADS];
-	pthread_t  threads[MAX_THREADS];
-	struct timespec delay;
-
+	signal (SIGINT, sigInt);
+	rc = 0;
+	pthread_mutex_init( &rc_mutex, NULL );
+	pthread_mutex_init( &r_mutex, NULL );
+	pthread_mutex_init( &w_mutex, NULL );
+	
 //-------------------------------------------------------------------		
 // Thread creation
 /* create the request-handling threads */
@@ -103,6 +118,9 @@ int main(int argc, char *argv[]){
         threadID[i] = i;
         pthread_create(&threads[i], NULL, (void *(*)(void*))handle_requests_loop, (void*)&threadID[i]);
     }
+
+	
+
 
 	
 //-------------------------------------------------------------------	
@@ -288,7 +306,7 @@ void sortUsers(User *userlist, User *SortedUserList, int numUsers){
 
 void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int numWords){
 	char buffer[1024] = "0";
-	User sortedUsers[MAX_USERS];
+	//User sortedUsers[MAX_USERS];
 	int currentUser = 0;
 	//int new_fd;
 	//new_fd = (int)some_fd;
@@ -338,8 +356,10 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 		//printf("failed auth, quitting \n");
 		message = "authFail";
 		sendMessage(new_fd, message);
+		pthread_exit(NULL);
+		
 		close(new_fd);
-		exit(0);
+		//exit(0);
 	} else {
 		message = "authPass";
 		sendMessage(new_fd, message);
@@ -416,14 +436,24 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 				}
 			}
 			if (won_game == 1) {
+				writeLock();
+				
 				printf("Player Won\n");
 				userlist[currentUser].games_played++;
 				userlist[currentUser].games_won ++;
+				
+				writeUnlock();
 			} else {
+				writeLock();
+				
 				printf("Player Lost\n");
 				userlist[currentUser].games_played++;
+				writeUnlock();
+				
 			}
 		} else if (strcmp(buffer, "2")== 0) {
+			readLock();
+			
 			int players = 0;
 			
 			memset(&buffer[0], 0, sizeof(buffer));
@@ -452,6 +482,7 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 					}while(strcmp(buffer,"received") != 0);
 				}
 			}
+			readUnlock();
 		} else if (strcmp(buffer, "3")== 0){
 			
 			// modification to users (test sorting)
@@ -473,6 +504,7 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			
 			printf("User Quit\n");
 			//close(new_fd);
+			pthread_exit(NULL);
 			break;
 			//exit(0);
 		}				
@@ -643,4 +675,50 @@ struct request* get_request(pthread_mutex_t* p_mutex)
 
     /* return the request to the caller. */
     return a_request;
+}
+
+void sigInt(int signum) {
+	for (int i = 0; i < connectedUsers; i++) {
+		pthread_cancel(threads[i]);
+	}
+	//close(sock_fd);
+	//pthread_exit(NULL);
+	exit(signum);
+}
+
+void readWriteMutexInit () {
+	
+}
+
+void readLock() {
+	pthread_mutex_lock( &r_mutex );
+	pthread_mutex_lock( &rc_mutex );
+	rc++;
+	
+	if ( rc == 1 ) {
+	pthread_mutex_lock( &w_mutex );
+	}
+	
+	pthread_mutex_unlock( &rc_mutex );
+	pthread_mutex_unlock( &r_mutex );
+}
+
+void readUnlock() {
+	pthread_mutex_lock( &rc_mutex );
+	rc--;
+	
+	if (rc == 0) {
+		pthread_mutex_unlock( &w_mutex );
+	}
+	pthread_mutex_unlock( &rc_mutex );
+}
+
+void writeLock() {
+	pthread_mutex_lock(&r_mutex);
+	pthread_mutex_lock(&w_mutex);
+}
+
+void writeUnlock() {
+	pthread_mutex_unlock(&w_mutex);
+	pthread_mutex_unlock(&r_mutex);
 }
