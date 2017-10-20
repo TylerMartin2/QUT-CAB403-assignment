@@ -345,24 +345,20 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 	
 	
 	//send response to client
-	char * message = malloc(20 * sizeof(char));
 	if (authFailed == 1){
 		//printf("failed auth, quitting \n");
-		strcpy(message, "authFail");
-		sendMessage(new_fd, message);
-		pthread_exit(NULL);
-		
-		close(new_fd);
-
+		strcpy(buffer, "authFail");
+		sendMessage(new_fd, buffer);
 		connectedUsers -=1;
+		close(new_fd);
+		pthread_exit(NULL);
 		return;
 
 		//exit(0);
 	} else {
-		strcpy(message, "authPass");
-		sendMessage(new_fd, message);
+		strcpy(buffer, "authPass");
+		sendMessage(new_fd, buffer);
 	}
-	free(message);
 
 
 
@@ -501,14 +497,17 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			
 			printf("User Quit\n");
 
-			//close(new_fd);
-			pthread_exit(NULL);
-			
+			connectedUsers -= 1;
 			close(new_fd);
-			connectedUsers = connectedUsers - 1;
+			pthread_exit(NULL);
 			return;
 
 			//exit(0);
+		} else if (strcmp(buffer, "")== 0){
+			connectedUsers -= 1;
+			close(new_fd);
+			pthread_exit(NULL);
+			return;
 		}				
 	}
 	close(new_fd);
@@ -676,10 +675,21 @@ struct request* get_request(pthread_mutex_t* p_mutex){
 }
 
 void sigInt(int signum) {
+	printf("ctrl-c detected, exiting\n");
+	
 	for (int i = 0; i < connectedUsers; i++) {
 		pthread_cancel(threads[i]);
 	}
-	//close(sock_fd);
+	for (int i = 0; i < userCount; i++){
+		free(userlist[i].username);
+		free(userlist[i].password);
+	}
+	for (int i = 0; i < numWords; i++){
+		free(words[i].type);
+		free(words[i].object);
+	}
+	
+	close(sock_fd);
 	//pthread_exit(NULL);
 	exit(signum);
 }
