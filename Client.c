@@ -8,10 +8,9 @@
 #include <sys/socket.h> 
 #include <unistd.h>
 
-	#define MAXDATASIZE 100 /* max number of bytes we can get at once */
-	#define ARRAY_SIZE 30  /* size of array to be sent */
-	#define PORT_NO 12345 /* PORT Number */
-	
+#define MAXDATASIZE 100 /* max number of bytes we can get at once */
+#define ARRAY_SIZE 30  /* size of array to be sent */
+#define PORT_NO 12345 /* PORT Number */
 	
 static int getLine (int *buff, size_t sz);
 
@@ -19,7 +18,6 @@ void getMessage(int sock_fd, char buffer[]);
 void sendMessage(int sock_fd, char * message);
 void getUserInput();
 int userMenu();
-
 
 int main(int argc, char *argv[]) {
 	int sock_fd, numbytes, readline;  
@@ -29,7 +27,7 @@ int main(int argc, char *argv[]) {
 	struct hostent *he;
 	struct sockaddr_in their_addr; /* connector's address information */
 
-	for (int i = 0; i < MAXDATASIZE; i++){
+	for (int i = 0; i < MAXDATASIZE; i++) {
 		buf[i] = 0;
 	}
 
@@ -96,6 +94,7 @@ int main(int argc, char *argv[]) {
 		
 		int selection = userMenu(sock_fd);
 		
+		// User selects to play game
 		if (selection == 1) {
 			char guessed_letters[30] = "";
 			char temp[50] = "";
@@ -104,30 +103,37 @@ int main(int argc, char *argv[]) {
 			int won_game = 0;
 			int counter = 0;
 			
+			// Gets the size of the word to be guessed
 			getMessage(sock_fd, buf);
 			strcpy(temp, buf);
 			word_size = strlen(temp);
 			
+			// Calculates the number of guesses the user gets
 			if ((word_size - 1 + 10) < 26) {
 				guesses_left = (word_size -1 + 10);
 			} else {
 				guesses_left = 26;
 			}
 		
+			// Game is run until guesses run out or user guesses word
 			while (guesses_left > 0) {
 				printf("\n\nGuessed letters: ");
 				
+				// Displays the letters already guessed
 				for (int i = 0; i < sizeof(guessed_letters)/sizeof(char); i++){
 					printf("%c", guessed_letters[i]);
 				}
 				
+				// Displays how many guesses remaining
 				printf("\nNumber of guesses left: %d\n", guesses_left);
 				printf("Word: ");
 				
+				// Displays the word to be guessed with any correct letters guessed if any
 				for (int i = 0; i < word_size; i++){
 					printf("%c", temp[i]);
 				}
 				
+				// Gets the guessed letter from user and sends to server and receives result 
 				printf("\nEnter your guess: ");
 				getUserInput(sendbuffer, sizeof(sendbuffer));
 				sendMessage(sock_fd, sendbuffer);
@@ -136,7 +142,8 @@ int main(int argc, char *argv[]) {
 				counter++;
 				getMessage(sock_fd, buf);
 				strcpy(temp, buf);
-
+				
+				// Checks to see if user has guessed the word 
 				int letters_left = 0;
 				
 				for (int i = 0; i < word_size; i++) {
@@ -151,6 +158,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			
+			// Displays message if user won game
 			if (won_game == 1 && guesses_left >= 0) {
 				printf("\n\nGuessed letters: ");
 				
@@ -164,8 +172,10 @@ int main(int argc, char *argv[]) {
 				for (int i = 0; i < word_size; i++){
 					printf("%c", temp[i]);
 				}
+				
 				printf("\n\nGame over\n\n");
 				printf("Well done! You won this round of Hangman!\n\n");
+			// Displays message if user lost game
 			} else {
 				printf("\n\nGuessed letters: ");
 				
@@ -182,34 +192,33 @@ int main(int argc, char *argv[]) {
 				
 				printf("\n\nGame over\n\n");
 				printf("Bad luck! You have run out of guesses. The Hangman got you!\n\n");
-			}			
+			}	
+		// User selects to display leader board
 		} else if (selection == 2) {
 			char name[10];
 			int won = 0;
 			int played = 0;
 			int players = 0;
 			
-			//memset(&buf[0], 0, sizeof(buf));
+			// Gets how many players have played
 			getMessage(sock_fd, buf);
-			//printf("%s",buf);
 			sscanf(buf, "%d", &players);
-			//printf(".playercount:%d.\n", players);
-			//usleep(500);
 			
+			// Display leaderboard if there has been at least 1 player
 			if (players > 0) {
 				for (int i = 0; i < players; i++) {
 					getMessage(sock_fd, buf);
-					//printf("-%s-",buf);
 					sscanf(buf, "%s %d %d", name, &won, &played);
 					printf("\nPlayer - %s\n", name);
 					printf("Number of games won - %d\n", won);
 					printf("Number of games played - %d\n", played);
 					sendMessage(sock_fd,"received");
-					//usleep(500);
 				}
+			// Display message if there have been no players
 			} else {
 				printf("\n\nThere is no information currently stored in the Leader Board. Try again later\n\n");
 			}
+		// User selects to quit game
 		} else {
 				printf("\n\nGoodbye\n");
 				exit(0);
@@ -224,11 +233,13 @@ int main(int argc, char *argv[]) {
 
 void getMessage(int sock_fd, char buffer[]){
 	int numbytes;
+	
 	if ((numbytes=recv(sock_fd, buffer, MAXDATASIZE, 0)) == -1) {
 		perror("recv");
 		close(sock_fd);
 		exit(1);
 	} 
+	
 	buffer[numbytes] = '\0';	
 }
 
@@ -245,17 +256,20 @@ int userMenu(int sock_fd) {
 	char buffer[1024];
 	int input;
 	
+	// Displays user menu selection
 	do {
 		printf("\n----- Enter your choice: -----\n\n");
 		printf("1. Play Hangman\n");
 		printf("2. Show Leaderboard\n");
 		printf("3. Quit\n\n");
 		printf("Selection option 1-3: ");
-
+		
+		// Gets input from user and sends to server
 		getUserInput(buffer, sizeof(buffer));
 		sendMessage(sock_fd, buffer);
 		input = atoi(buffer);
 		
+		// Displays if user has chosen a selection not within range
 		if ((input > 3) || (input < 1)){
 			printf("Please enter a number within the range supplied \n");
 		}
@@ -266,7 +280,6 @@ int userMenu(int sock_fd) {
 }
 
 void getUserInput(char * buffer, int size){
-
 	fgets(buffer, size, stdin);
 	buffer[strlen(buffer)-1] = '\0';
 }

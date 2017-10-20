@@ -15,24 +15,15 @@
 #include <pthread.h>
 #include <signal.h>
 
-	#define MAXDATASIZE 100
-	#define ARRAY_SIZE 30  /* Size of array to receive */
-	#define BACKLOG 10     /* how many pending connections queue will hold */
-	#define RETURNED_ERROR -1
-	#define DEFAULT_PORT_NO 12345
-	#define MAX_USERS 10
-	#define MAX_THREADS 10
+#define MAXDATASIZE 100
+#define ARRAY_SIZE 30  /* Size of array to receive */
+#define BACKLOG 10     /* how many pending connections queue will hold */
+#define RETURNED_ERROR -1
+#define DEFAULT_PORT_NO 12345
+#define MAX_USERS 10
+#define MAX_THREADS 10
 	
-int rc;	/* readcount */
-pthread_mutex_t rc_mutex;
-pthread_mutex_t r_mutex;
-pthread_mutex_t w_mutex;
-pthread_mutex_t request_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-pthread_cond_t  got_request   = PTHREAD_COND_INITIALIZER;
-int num_requests = 0;
-
-//define structs
-
+// define structs
 typedef struct User {
    char *username;
    char *password;
@@ -45,7 +36,6 @@ typedef struct Word_pair{
    char *object;
 } Word_pair;
 
-
 struct request {
     int number;	/* number of the request                  */
 	User * userlist;
@@ -57,7 +47,6 @@ struct request {
 
 struct request* requests = NULL;     /* head of linked list of requests. */
 struct request* last_request = NULL; /* pointer to last request.         */
-
 
 /* Definitions */
 int sock_fd;  /* listen on sock_fd, new connection on new_fd */
@@ -77,8 +66,15 @@ int numWords = 0;
 char* authFilename = "Authentication.txt";
 char* wordsFilename = "hangman_text.txt";
 
-	
-//Define Functions
+int rc;	/* readcount */
+pthread_mutex_t rc_mutex;
+pthread_mutex_t r_mutex;
+pthread_mutex_t w_mutex;
+pthread_mutex_t request_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+pthread_cond_t  got_request   = PTHREAD_COND_INITIALIZER;
+int num_requests = 0;
+
+// Define Functions
 void debug_printuserlist(); // e.g. debug_printuserlist(&userlist, userCount);
 void getMessage(int sock_fd, char buffer[]); // e.g. (sock_fd, buffer);
 void sendMessage(int sock_fd, char * message);
@@ -102,10 +98,12 @@ void readUnlock();
 void writeLock();
 void writeUnlock();
 
-//Begin Program
+// Begin Program
 int main(int argc, char *argv[]){
-	
+	// Register signal and signal handler
 	signal (SIGINT, sigInt);
+	
+	// Initialise read and write mutex
 	rc = 0;
 	pthread_mutex_init( &rc_mutex, NULL );
 	pthread_mutex_init( &r_mutex, NULL );
@@ -118,7 +116,6 @@ int main(int argc, char *argv[]){
         threadID[i] = i;
         pthread_create(&threads[i], NULL, (void *(*)(void*))handle_requests_loop, (void*)&threadID[i]);
     }
-
 
 //-------------------------------------------------------------------	
 // ***Import word and user arrays
@@ -148,8 +145,6 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 	
-
-
 	/* start listnening */
 	if (listen(sock_fd, BACKLOG) == -1) {
 		perror("listen");
@@ -157,23 +152,21 @@ int main(int argc, char *argv[]){
 	}
 	printf("server starts listnening ...\n");
 	
-
-
-
 //-----------------------------------------------------------------------------
 // toplevel client progress loop
 
 	while (1) { 
 		int new_fd;
 		sin_size = sizeof(struct sockaddr_in);
-		//printf("connectedUsers =%d.\n", connectedUsers);
 		
 			printf("connectedUsers =%d.\n", connectedUsers);
 			if ((new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
 				perror("accept");
 				//continue;
 			}
+			
 			connectedUsers += 1;
+			
 			if (connectedUsers <= MAX_USERS){
 				sendMessage(new_fd, "accept");
 				add_request(new_fd, userlist, userCount, words, numWords, &request_mutex, &got_request);
@@ -189,14 +182,12 @@ int main(int argc, char *argv[]){
             delay.tv_nsec = 10;
             nanosleep(&delay, NULL);
         }
-		
-		//gamePlay(new_fd, &userlist, userCount, &words, numWords);
 	}
 }
 
-
 void debug_printuserlist(User *userlist, int userCount){
 	int currentUser = 0;
+	
 	while(currentUser < userCount){
 		if (userlist[currentUser].username != NULL){
 			printf("[%s]  [%s]	[%d][%d] \n", userlist[currentUser].username, userlist[currentUser].password,
@@ -232,6 +223,7 @@ int userCompare(User user1, User user2){
 	
 	//games won
 	int gamesWonDiff = user1.games_won - user2.games_won;
+	
 	if (gamesWonDiff < 0){
 		return 1;
 	} else if (gamesWonDiff > 0){
@@ -240,15 +232,15 @@ int userCompare(User user1, User user2){
 		// percentage of games won
 		double winPercentDiff = ((double)user1.games_won/(double)user1.games_played) - 
 			((double)user2.games_won/(double)user2.games_played);
+			
 		if (winPercentDiff < 0){
 			return 1;
 		} else if (winPercentDiff > 0){
 			return -1;
 		} else{
 			// alphabetical order
-				//copy user string
-				//set to lowercase
-				
+			// copy user string
+			// set to lowercase
 			char * tempString1 = malloc(20* sizeof(char));
 			char * tempString2 = malloc(20* sizeof(char));
 			strcpy(	tempString1, user1.username);
@@ -257,11 +249,13 @@ int userCompare(User user1, User user2){
 			for(int i = 0; tempString1[i]; i++){
 				tempString1[i] = tolower(tempString1[i]);
 			}
+			
 			for(int i = 0; tempString2[i]; i++){
 			  tempString2[i] = tolower(tempString2[i]);
 			}
 					
 			int usercompare = strcmp(tempString1,tempString2);
+			
 			if (usercompare > 0){
 				return -1;
 			} else if (usercompare < 0){
@@ -309,12 +303,9 @@ void sortUsers(User *userlist, User *SortedUserList, int numUsers){
 	}	
 }
 
-void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int numWords){
+void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int numWords) {
 	char buffer[1024] = "0";
-	//User sortedUsers[MAX_USERS];
 	int currentUser = 0;
-
-
 	char *username;
 	char *password;
 	
@@ -322,52 +313,50 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 	password = malloc(15 * sizeof(char));
 	
 	printf("Connected to thread %lu\n", pthread_self());
-	//recv username
+	
+	// Receive username from user
 	getMessage(new_fd, username);
 	printf(".%s.\n", username);
 	
+	// Receive password from user
 	getMessage(new_fd, password);
 	printf(".%s.\n", password);
 	
-	//check if user registered
+	// check if user registered
 	int authFailed = 1;
+	
 	for (int i = 0; i < userCount; i++ ){	
 		if (strcmp(username, userlist[i].username) == 0 && strcmp(password, userlist[i].password) == 0){
-			//printf("user found & pass correct \n");
 			authFailed = 0;
 			currentUser = i;
 			break;
 		}
 	}
+	
 	free(username);
 	free(password);
 	
-	
-	
 	//send response to client
 	if (authFailed == 1){
-		//printf("failed auth, quitting \n");
 		strcpy(buffer, "authFail");
 		sendMessage(new_fd, buffer);
 		connectedUsers -=1;
 		close(new_fd);
-		pthread_exit(NULL);
 		return;
-
-		//exit(0);
 	} else {
 		strcpy(buffer, "authPass");
 		sendMessage(new_fd, buffer);
 	}
 
-
-
 //***hangman title
 	srand(time(NULL));
 	while(1) {
+		
+		// Get user menu selection from user
 		getMessage(new_fd, buffer);
 		printf("User Selected: %s\n", buffer);
 		
+		// User selected to play game
 		if (strcmp(buffer, "1") == 0) {
 			char word[50] = "";
 			char temp[50] = "";
@@ -376,11 +365,13 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			int won_game = 0;
 			int r = rand() % numWords;
 			
+			// Add words together to get total length
 			strcat(word, words[r].type);
 			strcat(word, " ");
 			strcat(word, words[r].object);
 			word_size = strlen(word);
 			
+			// Calculates the number of guesses user gets
 			if ((word_size - 1 + 10) < 26) {
 				guesses_left = (word_size -1 + 10);
 			} else {
@@ -390,6 +381,7 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			printf("Game Start\n");
 			printf("%s\n", word);
 			
+			// Send the user the word to be guessed in underscore
 			for (int i = 0; i < word_size; i++) {
 				if (word[i] == *" ") {
 					temp[i] = word[i];
@@ -401,20 +393,24 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			strcpy(buffer, temp);
 			sendMessage(new_fd, buffer);
 			
+			// Game is run until guesses run out or user guesses word
 			while (guesses_left > 0) {
 				getMessage(new_fd, buffer);
 				printf("User Guessed: %s\n", buffer);
 				guesses_left--;
 				
+				// Check to see if guessed letter is in word
 				for (int i = 0; i < sizeof(word)/sizeof(char); i++){
 					if (*buffer == word[i]){
 					temp[i]= word[i];
 					}
 				}
 				
+				// Send user results of guessed letter
 				strcpy(buffer, temp);
 				sendMessage(new_fd, buffer);
 				
+				// Checks to see if user has guessed the word 
 				int letters_left = 0;
 				
 				for (int i = 0; i < word_size; i++) {
@@ -428,22 +424,22 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 					break;
 				}
 			}
+			
+			// Increment score and games played if user won
 			if (won_game == 1) {
 				writeLock();
-				
 				printf("Player Won\n");
 				userlist[currentUser].games_played++;
 				userlist[currentUser].games_won ++;
-				
 				writeUnlock();
+			// Increment games played if user lost
 			} else {
 				writeLock();
-				
 				printf("Player Lost\n");
 				userlist[currentUser].games_played++;
 				writeUnlock();
-				
 			}
+		// User selected to display leader board
 		} else if (strcmp(buffer, "2")== 0) {
 			readLock();
 			
@@ -453,22 +449,23 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 			sortUsers(userlist, sortedUsers, userCount);
 			printf("Show Leaderboard\n");
 			
+			// Calculate how many different users have played 
 			for (int i = 0; i < userCount; i++){
 				if (userlist[i].games_played > 0) {
 					players++;
 				}
 			}
 			
+			// Send how many players have played
 			sprintf(buffer, "%d", players);
-			//printf("Players %s\n", buffer);
 			sendMessage(new_fd, buffer);
 			usleep(500);
 			
+			// Send leader board if there has been at least 1 player
 			if (players > 0) {
 				for (int i = 0; i < players; i++) {
 					sprintf(buffer, "%s %d %d", sortedUsers[i].username, sortedUsers[i].games_won, sortedUsers[i].games_played);
 					sendMessage(new_fd, buffer);
-					//printf("%s\n", buffer);
 					do{
 						getMessage(new_fd, buffer);
 						usleep(500);
@@ -476,37 +473,15 @@ void gamePlay(int new_fd, User * userlist, int userCount, Word_pair * words, int
 				}
 			}
 			readUnlock();
+		// User selected to quit
 		} else if (strcmp(buffer, "3")== 0){
-			
-			// modification to users (test sorting)
-			userlist[3].games_played += 1;
-			userlist[3].games_won += 1;
-			userlist[5].games_won += 5;
-			userlist[1].games_played += 1;
-			for(int i=0; i < userCount; i++){
-				userlist[i].games_played += 1;
-			}
-			//end test user modification section
-			//sort user function
-			sortUsers( userlist, sortedUsers, userCount);
-			//print both user arrays with line between
-			debug_printuserlist(userlist, userCount);
-			printf("-----------------------------------------\n");
-			debug_printuserlist(sortedUsers, userCount);
-			
-			
 			printf("User Quit\n");
-
 			connectedUsers -= 1;
 			close(new_fd);
-			pthread_exit(NULL);
 			return;
-
-			//exit(0);
 		} else if (strcmp(buffer, "")== 0){
 			connectedUsers -= 1;
 			close(new_fd);
-			pthread_exit(NULL);
 			return;
 		}				
 	}
@@ -519,16 +494,20 @@ void importWords(char * filename, Word_pair * output, int * wordCount){
 	FILE *file;
 	
 	file = fopen(filename, "r");
+	
 	if (file == NULL){
         printf("Could not open file %s",filename);
     }
+	
 	int wordPairCounter = 0;
+	
 	while (fgets(buffer, sizeof(buffer), file) != NULL){
 		output[wordPairCounter].type = malloc(20*sizeof(char));
 		output[wordPairCounter].object = malloc(20*sizeof(char));
 		sscanf( buffer, "%[^,],%s ", output[wordPairCounter].object, output[wordPairCounter].type);
 		wordPairCounter++;
 	}
+	
 	 fclose(file);
 	 *wordCount = wordPairCounter;
 }
@@ -538,15 +517,19 @@ void importUsers(char * filename, User * output, int * userCount){
 	FILE *file;
 	
 	file = fopen(filename, "r");
+	
     if (file == NULL){
         printf("Could not open file %s",filename);
     }
+	
 	int currentUser = -1; //-1 to prevent header
+	
 	while (fgets(buffer, sizeof(buffer), file) != NULL){
 		if (currentUser < 0){ //skip header line
 			currentUser++;
 			continue;
 		}
+		
 		output[currentUser].username = malloc(20*sizeof(char));
 		output[currentUser].password = malloc(20*sizeof(char));
 		sscanf( buffer, "%s %s", output[currentUser].username, output[currentUser].password);
@@ -554,6 +537,7 @@ void importUsers(char * filename, User * output, int * userCount){
 		output[currentUser].games_won = 0;
 		currentUser++;
 	}
+	
 	fclose(file);
 	*userCount = currentUser;
 }
@@ -563,15 +547,14 @@ void* handle_requests_loop(void* data){
     struct request* a_request;      /* pointer to a request.               */
     int thread_id = *((int*)data);  /* thread identifying number           */
 
-
     /* lock the mutex, to access the requests list exclusively. */
     rc = pthread_mutex_lock(&request_mutex);
 
     /* do forever.... */
     while (1) {
-
         if (num_requests > 0) { /* a request is pending */
             a_request = get_request(&request_mutex);
+			
             if (a_request) { /* got a request - handle it and free it */
                 /* unlock mutex - so other threads would be able to handle */
                 /* other reqeusts waiting in the queue paralelly.          */
@@ -611,6 +594,7 @@ void add_request(int request_num, User * userlist, int userCount, Word_pair * wo
 
     /* create structure with new request */
     a_request = (struct request*)malloc(sizeof(struct request));
+	
     if (!a_request) { /* malloc failed?? */
         fprintf(stderr, "add_request: out of memory\n");
         exit(1);
@@ -657,6 +641,7 @@ struct request* get_request(pthread_mutex_t* p_mutex){
     if (num_requests > 0) {
         a_request = requests;
         requests = a_request->next;
+		
         if (requests == NULL) { /* this was the last request on the list */
             last_request = NULL;
         }
@@ -680,22 +665,19 @@ void sigInt(int signum) {
 	for (int i = 0; i < connectedUsers; i++) {
 		pthread_cancel(threads[i]);
 	}
+	
 	for (int i = 0; i < userCount; i++){
 		free(userlist[i].username);
 		free(userlist[i].password);
 	}
+	
 	for (int i = 0; i < numWords; i++){
 		free(words[i].type);
 		free(words[i].object);
 	}
 	
 	close(sock_fd);
-	//pthread_exit(NULL);
 	exit(signum);
-}
-
-void readWriteMutexInit () {
-	
 }
 
 void readLock() {
@@ -704,7 +686,7 @@ void readLock() {
 	rc++;
 	
 	if ( rc == 1 ) {
-	pthread_mutex_lock( &w_mutex );
+		pthread_mutex_lock( &w_mutex );
 	}
 	
 	pthread_mutex_unlock( &rc_mutex );
@@ -718,6 +700,7 @@ void readUnlock() {
 	if (rc == 0) {
 		pthread_mutex_unlock( &w_mutex );
 	}
+	
 	pthread_mutex_unlock( &rc_mutex );
 }
 
